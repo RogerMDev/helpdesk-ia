@@ -8,6 +8,8 @@ function App() {
 
   return (
     <>
+      <div className="min-h-screen flex items-center justify-center">
+      <h1 className="text-4xl font-extrabold text-center">Hola Tailwind 🚀</h1></div>
       <div>
         <a href="https://vite.dev" target="_blank">
           <img src={viteLogo} className="logo" alt="Vite logo" />
