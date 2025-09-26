@@ -1,3 +1,7 @@
 package com.helpdesk.backend.user;
 
-public enum Role {ADMIN, AGENT, USER}
+public enum Role {
+    ADMIN, 
+    AGENT, 
+    USER
+}
