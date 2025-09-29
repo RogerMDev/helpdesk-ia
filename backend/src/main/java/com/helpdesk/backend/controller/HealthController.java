@@ -1,4 +1,4 @@
-package com.helpdesk.backend.health;
+package com.helpdesk.backend.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
