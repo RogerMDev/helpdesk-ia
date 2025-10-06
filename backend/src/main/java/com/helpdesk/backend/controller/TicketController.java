@@ -75,4 +75,10 @@ public class TicketController {
     t.setUpdatedAt(Instant.now());
     return tickets.save(t);
   }
+
+  @GetMapping("/{id}")
+  public Ticket getById(@PathVariable Long id) {
+    return tickets.findById(id)
+        .orElseThrow(() -> new RuntimeException("Ticket no encontrado con id: " + id));
+  }
 }
