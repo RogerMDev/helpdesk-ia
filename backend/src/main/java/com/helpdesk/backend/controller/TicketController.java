@@ -32,12 +32,11 @@ public class TicketController {
 
   // DTOs simples para no exponer entidades tal cual
   public record CreateTicketDTO(Long createdById, Long assigneeId, String title, String description,
-                                TicketPriority priority, String topic) {}
+  TicketPriority priority, String topic) {}
   public record UpdateStatusDTO(TicketStatus status) {}
 
   @GetMapping
-  public List<Ticket> list(@RequestParam(value="mine", required=false) Boolean mine,
-                           @RequestParam(value="userId", required=false) Long userId) {
+  public List<Ticket> list(@RequestParam(value="mine", required=false) Boolean mine, @RequestParam(value="userId", required=false) Long userId) {
     if (Boolean.TRUE.equals(mine) && userId != null) {
       return tickets.findByCreatedById(userId);
     }
