@@ -1,40 +1,52 @@
 package com.helpdesk.backend.model;
 
-import java.time.Instant;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "attachments")
+@Table(name = "attachment")
 public class Attachment {
-  @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
 
-  @ManyToOne @JoinColumn(name="ticket_id", nullable=false)
-  private Ticket ticket;
+    @Id
+    @Column(name = "attachment_id_pk", nullable = false)
+    private Long id;
 
-  @Column(nullable=false) private String filename;
-  @Column(name="filepath", nullable=false) private String filepath;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ticket_id_fk", nullable = false,
+                foreignKey = @ForeignKey(name = "attachment_ticket_id_fk_foreign"))
+    private Ticket ticket;
 
-  @Column(name="uploaded_at", nullable=false)
-  private Instant uploadedAt = Instant.now();
+    @Column(name = "filename", nullable = false, length = 255)
+    private String filename;
 
-  // getters/setters
-  public Long getId(){ return id; }
-  public void setId(Long id){ this.id = id; }
-  public Ticket getTicket(){ return ticket; }
-  public void setTicket(Ticket ticket){ this.ticket = ticket; }
-  public String getFilename(){ return filename; }
-  public void setFilename(String filename){ this.filename = filename; }
-  public String getFilepath(){ return filepath; }
-  public void setFilepath(String filepath){ this.filepath = filepath; }
-  public Instant getUploadedAt(){ return uploadedAt; }
-  public void setUploadedAt(Instant uploadedAt){ this.uploadedAt = uploadedAt; }
+    @Column(name = "filepath", nullable = false, length = 500)
+    private String filepath;
+
+    @Column(name = "uploaded_at")
+    private LocalDateTime uploadedAt;
+
+    public Attachment() {}
+
+    public Attachment(Long id, Ticket ticket, String filename, String filepath, LocalDateTime uploadedAt) {
+        this.id = id;
+        this.ticket = ticket;
+        this.filename = filename;
+        this.filepath = filepath;
+        this.uploadedAt = uploadedAt;
+    }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public Ticket getTicket() { return ticket; }
+    public void setTicket(Ticket ticket) { this.ticket = ticket; }
+
+    public String getFilename() { return filename; }
+    public void setFilename(String filename) { this.filename = filename; }
+
+    public String getFilepath() { return filepath; }
+    public void setFilepath(String filepath) { this.filepath = filepath; }
+
+    public LocalDateTime getUploadedAt() { return uploadedAt; }
+    public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
 }
