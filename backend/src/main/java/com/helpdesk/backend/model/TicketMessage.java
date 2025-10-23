@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "ticket_message")
+
 public class TicketMessage {
 
     @Id

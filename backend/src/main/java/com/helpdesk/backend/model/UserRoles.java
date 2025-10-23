@@ -3,6 +3,8 @@ package com.helpdesk.backend.model;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -27,10 +29,11 @@ public class UserRoles {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "isAI", nullable = false)
+    @Column(name = "isai", nullable = false)
     private boolean isAI;
 
     // Bi-directional convenience: users that have this role
+    @JsonIgnore
     @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
     private Set<User> users = new HashSet<>();
 

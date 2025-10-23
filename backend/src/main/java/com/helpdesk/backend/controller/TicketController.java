@@ -1,6 +1,6 @@
 package com.helpdesk.backend.controller;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.helpdesk.backend.model.Status;
 import com.helpdesk.backend.model.Ticket;
-import com.helpdesk.backend.model.TicketPriority;
-import com.helpdesk.backend.model.TicketStatus;
 import com.helpdesk.backend.model.User;
+import com.helpdesk.backend.repository.StatusRepository;
 import com.helpdesk.backend.repository.TicketRepository;
 import com.helpdesk.backend.repository.UserRepository;
 
@@ -25,18 +25,22 @@ public class TicketController {
 
   private final TicketRepository tickets;
   private final UserRepository users;
+  private final StatusRepository statuses;
 
-  public TicketController(TicketRepository tickets, UserRepository users) {
-    this.tickets = tickets; this.users = users;
+  public TicketController(TicketRepository tickets, UserRepository users, StatusRepository statuses) {
+    this.tickets = tickets;
+    this.users = users;
+    this.statuses = statuses;
   }
 
-  // DTOs simples para no exponer entidades tal cual
+  // DTOs: usamos statusId (clave de la tabla status) en lugar de enums inexistentes
   public record CreateTicketDTO(Long createdById, Long assigneeId, String title, String description,
-  TicketPriority priority, String topic) {}
-  public record UpdateStatusDTO(TicketStatus status) {}
+                                String topic, Integer statusId /* obligatorio para crear */) {}
+  public record UpdateStatusDTO(Integer statusId) {}
 
   @GetMapping
-  public List<Ticket> list(@RequestParam(value="mine", required=false) Boolean mine, @RequestParam(value="userId", required=false) Long userId) {
+  public List<Ticket> list(@RequestParam(value = "mine", required = false) Boolean mine,
+                           @RequestParam(value = "userId", required = false) Long userId) {
     if (Boolean.TRUE.equals(mine) && userId != null) {
       return tickets.findByCreatedById(userId);
     }
@@ -46,32 +50,39 @@ public class TicketController {
   @PostMapping
   public Ticket create(@RequestBody CreateTicketDTO dto) {
     var creator = users.findById(dto.createdById())
-      .orElseThrow(() -> new RuntimeException("createdById no existe"));
+        .orElseThrow(() -> new RuntimeException("createdById no existe"));
     User assignee = null;
     if (dto.assigneeId() != null) {
-      assignee = users.findById(dto.assigneeId()).orElse(null);
+      assignee = users.findById(dto.assigneeId())
+          .orElse(null);
     }
+    Status status = statuses.findById(dto.statusId())
+        .orElseThrow(() -> new RuntimeException("statusId no existe"));
+
     var t = new Ticket();
     t.setCreatedBy(creator);
     t.setAssignee(assignee);
     t.setTitle(dto.title());
     t.setDescription(dto.description());
-    t.setPriority(dto.priority() != null ? dto.priority() : TicketPriority.MEDIUM);
-    t.setStatus(TicketStatus.OPEN);
     t.setTopic(dto.topic());
-    t.setCreatedAt(Instant.now());
-    t.setUpdatedAt(Instant.now());
+    t.setStatus(status);
+    t.setCreatedAt(LocalDateTime.now());
+    t.setUpdatedAt(LocalDateTime.now());
     return tickets.save(t);
   }
 
   @PatchMapping("/{id}/status")
   public Ticket updateStatus(@PathVariable Long id, @RequestBody UpdateStatusDTO dto) {
     var t = tickets.findById(id).orElseThrow();
-    t.setStatus(dto.status());
-    if (dto.status() == TicketStatus.RESOLVED) {
-      t.setClosedAt(Instant.now());
+    var status = statuses.findById(dto.statusId())
+        .orElseThrow(() -> new RuntimeException("statusId no existe"));
+
+    t.setStatus(status);
+    // Cierra si el nombre del status es RESOLVED (ignorando mayúsculas/minúsculas)
+    if (status.getName() != null && status.getName().equalsIgnoreCase("RESOLVED")) {
+      t.setClosedAt(LocalDateTime.now());
     }
-    t.setUpdatedAt(Instant.now());
+    t.setUpdatedAt(LocalDateTime.now());
     return tickets.save(t);
   }
 

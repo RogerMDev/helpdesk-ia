@@ -1,6 +1,6 @@
 package com.helpdesk.backend.controller;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,18 +13,24 @@ import org.springframework.web.bind.annotation.RestController;
 import com.helpdesk.backend.model.TicketMessage;
 import com.helpdesk.backend.repository.TicketMessageRepository;
 import com.helpdesk.backend.repository.TicketRepository;
+import com.helpdesk.backend.repository.UserRepository;
 
 @RestController
 @RequestMapping("/tickets/{ticketId}/messages")
 public class MessageController {
+
   private final TicketRepository tickets;
   private final TicketMessageRepository messages;
+  private final UserRepository users;
 
-  public MessageController(TicketRepository tickets, TicketMessageRepository messages) {
-    this.tickets = tickets; this.messages = messages;
+  public MessageController(TicketRepository tickets,TicketMessageRepository messages,UserRepository users) {
+    this.tickets = tickets;
+    this.messages = messages;
+    this.users = users;
   }
 
-  public record NewMessageDTO(String author, String content) {}
+  // Pedimos el userId porque en la tabla existe user_id_fk (no "author")
+  public record NewMessageDTO(Long userId, String content) {}
 
   @GetMapping
   public List<TicketMessage> list(@PathVariable Long ticketId) {
@@ -34,11 +40,15 @@ public class MessageController {
   @PostMapping
   public TicketMessage add(@PathVariable Long ticketId, @RequestBody NewMessageDTO dto) {
     var ticket = tickets.findById(ticketId).orElseThrow();
+    var user = users.findById(dto.userId()).orElseThrow();
+
     var m = new TicketMessage();
     m.setTicket(ticket);
-    m.setAuthor(dto.author());      // "USER" | "AGENT" | "AI"
+    m.setUser(user);
     m.setContent(dto.content());
-    m.setCreatedAt(Instant.now());
+    m.setCreatedAt(LocalDateTime.now());
+
     return messages.save(m);
   }
 }
+  

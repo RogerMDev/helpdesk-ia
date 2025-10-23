@@ -1,16 +1,28 @@
 package com.helpdesk.backend.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.Set;
 import java.util.HashSet;
+import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
 // Table name is a reserved word in many DBs. In your SQL it's quoted "user".
 @Table(name = "\"user\"",
        uniqueConstraints = {
-           @UniqueConstraint(name = "user_email_unique", columnNames = {"email"})
-       })
+        @UniqueConstraint(name = "user_email_unique", columnNames = {"email"})})
+        
 public class User {
 
     @Id
@@ -36,13 +48,13 @@ public class User {
 
     // Reverse relations for convenience
     @OneToMany(mappedBy = "createdBy", fetch = FetchType.LAZY)
-    private Set<Ticket> createdTickets = new HashSet<>();
+    @JsonIgnore private Set<Ticket> createdTickets = new HashSet<>();
 
     @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
-    private Set<Ticket> assignedTickets = new HashSet<>();
+    @JsonIgnore private Set<Ticket> assignedTickets = new HashSet<>();
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private Set<TicketMessage> messages = new HashSet<>();
+    @JsonIgnore private Set<TicketMessage> messages = new HashSet<>();
 
     public User() {}
 
@@ -82,4 +94,5 @@ public class User {
 
     public Set<TicketMessage> getMessages() { return messages; }
     public void setMessages(Set<TicketMessage> messages) { this.messages = messages; }
+    
 }
