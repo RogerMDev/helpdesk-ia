@@ -9,3 +9,4 @@ import com.helpdesk.backend.model.Attachment;
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
   List<Attachment> findByTicketId(Long ticketId);
 }
+
