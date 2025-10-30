@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import Input from "../../components/ui/Input";
-import Button from "../../components/ui/Button";
-import Select from "../../components/ui/Select";
+import Button from "../components/ui/Button.jsx";
+import Input from "../components/ui/Input.jsx";
+import Select from "../components/ui/Select.jsx";
 import Alert from "../../components/Alert";
 import { createUser, getRoles } from "../../api/users";
 import { Link, useNavigate } from "react-router-dom";

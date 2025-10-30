@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import Input from "../../components/ui/Input";
-import Button from "../../components/ui/Button";
-import Alert from "../../components/Alert";
+import Button from "../components/ui/Button.jsx";
+import Input from "../components/ui/Input.jsx";
+import Select from "../components/ui/Select.jsx";
 import { login } from "../../api/auth";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../../context/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 
