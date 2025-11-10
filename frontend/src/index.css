@@ -2,12 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Reset y fondo suave */
+/* (opcional) reset sencillo */
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
-body {
-  @apply bg-slate-50;
-  margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-}
+body { margin: 0; }
