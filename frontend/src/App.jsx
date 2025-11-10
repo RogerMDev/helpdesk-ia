@@ -1,10 +1,11 @@
-import AuthProvider from "./context/AuthContext.jsx"; // o sin .jsx
-import AppRouter from "./router/AppRouter.jsx";       // o sin .jsx
+import { Routes, Route, Navigate } from 'react-router-dom'
+import Login from './pages/Login.jsx'
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppRouter />
-    </AuthProvider>
-  );
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  )
 }
