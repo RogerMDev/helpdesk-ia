@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import LogoMark from '../components/LogoMark.jsx'
-import { loginRequest } from '../lib/api.js'
+import LogoMark from "../../components/LogoMark.jsx"
+import { loginRequest } from "../../lib/api.js"
 
 export default function Login() {
   const [email, setEmail] = useState('')
