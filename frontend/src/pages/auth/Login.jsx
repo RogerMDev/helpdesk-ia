@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import LogoMark from "../../components/LogoMark.jsx"
+import logo_helpdesk from "../../assets/logo_helpdesk.png"
 import { loginRequest } from "../../lib/api.js"
 
 export default function Login() {
@@ -30,7 +30,7 @@ export default function Login() {
     <div className="min-h-screen grid place-items-center px-4 py-8">
       <div className="w-full max-w-xl rounded-2xl bg-white shadow-md ring-1 ring-black/5 p-6 sm:p-10">
         <div className="text-center space-y-4">
-          <LogoMark />
+          <img src={logo_helpdesk} alt="Helpdesk IT" className="mx-auto h-[110px] w-[110px] rounded-xl shadow-sm object-contain" />
           <h1 className="text-2xl font-semibold tracking-tight">Sistema de Tickets</h1>
         </div>
 
