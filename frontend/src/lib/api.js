@@ -22,3 +22,7 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
 export function loginRequest(email, password) {
   return apiFetch('/auth/login', { method: 'POST', body: { email, password } })
 }
+export function requestPasswordReset(email) {
+  // Cambia la ruta si tu backend usa otra, p. ej. '/users/password/forgot'
+  return apiFetch('/auth/forgot-password', { method: 'POST', body: { email } })
+}
