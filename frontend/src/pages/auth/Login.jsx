@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import logo_helpdesk from "../../assets/logo_helpdesk.png"
-import { loginRequest } from "../../lib/api.js"
+import logo_helpdesk from '../../assets/logo_helpdesk.png'
+import { loginRequest } from '../../lib/api.js'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -16,11 +16,18 @@ export default function Login() {
     setLoading(true)
     try {
       if (!email || !password) throw new Error('Rellena todos los campos')
+
       const data = await loginRequest(email, password)
-      if (data?.token) localStorage.setItem('token', data.token)
-      navigate('/tickets')
+
+      // ✅ Navegamos solo si el backend confirma login (ej. devuelve token)
+      if (data?.token) {
+        localStorage.setItem('token', data.token)
+        navigate('/tickets')
+      } else {
+        throw new Error('Credenciales incorrectas')
+      }
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'No se pudo iniciar sesión')
     } finally {
       setLoading(false)
     }
@@ -30,24 +37,30 @@ export default function Login() {
     <div className="min-h-screen grid place-items-center px-4 py-8">
       <div className="w-full max-w-xl rounded-2xl bg-white shadow-md ring-1 ring-black/5 p-6 sm:p-10">
         <div className="text-center space-y-4">
-          <img src={logo_helpdesk} alt="Helpdesk IT" className="mx-auto h-[110px] w-[110px] rounded-xl shadow-sm object-contain" />
-          <h1 className="text-2xl font-semibold tracking-tight">Bienvenido a Helpia!</h1>
+          <img
+            src={logo_helpdesk}
+            alt="Helpdesk IT"
+            className="mx-auto h-[110px] w-[110px] rounded-xl shadow-sm object-contain"
+          />
+          <h1 className="text-2xl font-semibold tracking-tight">¡Bienvenido a Helpia!</h1>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={onSubmit}>
           <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-                Nombre de usuario
+                Correo electrónico
               </label>
               <input
                 id="email"
                 type="email"
-                autoComplete="username"
+                autoComplete="email"
+                required
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="usuario@ejemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={!!error}
               />
             </div>
 
@@ -59,16 +72,20 @@ export default function Login() {
                 id="password"
                 type="password"
                 autoComplete="current-password"
+                required
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={!!error}
               />
             </div>
           </div>
 
           {error && (
-            <p className="text-sm text-red-600" role="alert">{error}</p>
+            <p className="text-sm text-red-600" role="alert" aria-live="polite">
+              {error}
+            </p>
           )}
 
           <button
@@ -79,10 +96,13 @@ export default function Login() {
             {loading ? 'Entrando…' : 'Iniciar Sesión'}
           </button>
 
-          <div className="text-center">
-          <Link className="text-sm text-blue-700 hover:underline" to="/forgot-password">
-            ¡Olvidé mi contraseña!
-          </Link>
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Link className="text-sm text-blue-700 hover:underline" to="/register">
+              ¿No tienes cuenta? <span className="font-semibold">¡Regístrate!</span>
+            </Link>
+            <Link className="text-sm text-blue-700 hover:underline" to="/forgot-password">
+              ¿Olvidaste tu contraseña?
+            </Link>
           </div>
         </form>
       </div>
