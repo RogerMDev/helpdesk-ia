@@ -1,5 +1,7 @@
+// src/lib/api.js
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
+// Helper genérico
 export async function apiFetch(path, { method = 'GET', body, token } = {}) {
   const res = await fetch(`${API_URL}${path}`, {
     method,
@@ -10,6 +12,9 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   })
 
+  // Soporta 204 No Content
+  if (res.status === 204) return null
+
   const data = await res.json().catch(() => null)
   if (!res.ok) {
     const msg = data?.message || `Error ${res.status}`
@@ -18,11 +23,27 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
   return data
 }
 
-// Ajusta la ruta según tu backend: /auth/login, /users/login, etc.
+// --- Auth ---
 export function loginRequest(email, password) {
+  // Ajusta la ruta si tu backend usa otra
   return apiFetch('/auth/login', { method: 'POST', body: { email, password } })
 }
+
 export function requestPasswordReset(email) {
-  // Cambia la ruta si tu backend usa otra, p. ej. '/users/password/forgot'
   return apiFetch('/auth/forgot-password', { method: 'POST', body: { email } })
+}
+
+export function resetPassword({ token, password }) {
+  return apiFetch('/auth/reset-password', {
+    method: 'POST',
+    body: { token, password },
+  })
+}
+
+// (Opcional) registro centralizado
+export function registerRequest({ name, lastName, email, phone, password }) {
+  return apiFetch('/auth/register', {
+    method: 'POST',
+    body: { name, lastName, email, phone, password },
+  })
 }
