@@ -134,7 +134,7 @@ export default function Register() {
           </div>
 
           <div className="flex gap-3 mt-2">
-            <Button variant="ghost" type="button" className="flex-1">
+            <Button variant="ghost" type="button" className="flex-1" onClick={() => navigate('/login')}>
               Cancelar
             </Button>
             <Button type="submit" className="flex-1" disabled={loading}>
