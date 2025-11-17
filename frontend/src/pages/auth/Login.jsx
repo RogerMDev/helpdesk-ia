@@ -1,31 +1,40 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import logo_helpdesk from '../../assets/logo_helpdesk.png'
-import { loginRequest } from '../../lib/api.js'
+import { useAuth } from '../../context/AuthContext.jsx'
+import Alert from '../../components/Alert.jsx'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [ok, setOk] = useState('')
+
   const navigate = useNavigate()
+  const location = useLocation()
+  const { login, isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    const qs = new URLSearchParams(location.search)
+    if (qs.get('registered') === '1') setOk('Cuenta creada. Ya puedes iniciar sesión.')
+    if (qs.get('reset') === '1') setOk('Contraseña cambiada correctamente.')
+  }, [location.search])
+
+  useEffect(() => {
+    if (isAuthenticated) navigate('/tickets', { replace: true })
+  }, [isAuthenticated, navigate])
 
   async function onSubmit(e) {
     e.preventDefault()
     setError('')
+    setOk('')
     setLoading(true)
     try {
       if (!email || !password) throw new Error('Rellena todos los campos')
-
-      const data = await loginRequest(email, password)
-
-      // ✅ Navegamos solo si el backend confirma login (ej. devuelve token)
-      if (data?.token) {
-        localStorage.setItem('token', data.token)
-        navigate('/tickets')
-      } else {
-        throw new Error('Credenciales incorrectas')
-      }
+      await login(email, password)
+      const from = location.state?.from || '/tickets'
+      navigate(from, { replace: true })
     } catch (err) {
       setError(err.message || 'No se pudo iniciar sesión')
     } finally {
@@ -44,6 +53,18 @@ export default function Login() {
           />
           <h1 className="text-2xl font-semibold tracking-tight">¡Bienvenido a Helpia!</h1>
         </div>
+
+        {ok && (
+          <div className="mt-4">
+            <Alert type="success">{ok}</Alert>
+          </div>
+        )}
+
+        {error && (
+          <p className="text-sm text-red-600 mt-4" role="alert" aria-live="polite">
+            {error}
+          </p>
+        )}
 
         <form className="mt-8 space-y-6" onSubmit={onSubmit}>
           <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-6">
@@ -81,12 +102,6 @@ export default function Login() {
               />
             </div>
           </div>
-
-          {error && (
-            <p className="text-sm text-red-600" role="alert" aria-live="polite">
-              {error}
-            </p>
-          )}
 
           <button
             type="submit"
