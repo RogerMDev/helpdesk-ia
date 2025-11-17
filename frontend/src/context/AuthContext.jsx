@@ -15,7 +15,6 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function login(email, password) {
-    // Esperamos { token, user } del backend; si tu shape es otro, dime y lo adapto
     const data = await loginRequest(email, password)
     if (!data?.token) throw new Error('Credenciales incorrectas')
     localStorage.setItem('token', data.token)
@@ -27,21 +26,17 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token')
     setToken(null)
     setUser(null)
-    // Redirección automática ya la gestiona apiFetch en 401, pero por si acaso:
     if (!location.pathname.startsWith('/login')) location.assign('/login')
   }
 
-  const value = useMemo(
-    () => ({
-      token,
-      user,
-      isAuthenticated: !!token,
-      login,
-      logout,
-      loading,
-    }),
-    [token, user, loading]
-  )
+  const value = useMemo(() => ({
+    token,
+    user,
+    isAuthenticated: !!token,
+    login,
+    logout,
+    loading,
+  }), [token, user, loading])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
@@ -51,4 +46,3 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth debe usarse dentro de <AuthProvider>')
   return ctx
 }
-
