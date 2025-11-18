@@ -1,48 +1,63 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { loginRequest } from '../lib/api.js'
+// src/context/AuthContext.jsx
+import { createContext, useContext, useEffect, useState } from 'react'
+import { loginUser } from '../api/users' 
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(null)
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [token, setToken] = useState(null)
+  const isAuthenticated = !!user && !!token
 
+  // Al cargar la app, intenta restaurar la sesión de localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('token')
-    if (stored) setToken(stored)
-    setLoading(false)
+    const stored = localStorage.getItem('auth')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        if (parsed?.user && parsed?.token) {
+          setUser(parsed.user)
+          setToken(parsed.token)
+        }
+      } catch {
+        // Si está corrupto, lo limpiamos
+        localStorage.removeItem('auth')
+      }
+    }
   }, [])
 
-  async function login(email, password) {
-    const data = await loginRequest(email, password)
-    if (!data?.token) throw new Error('Credenciales incorrectas')
-    localStorage.setItem('token', data.token)
+  // 👇 Esta es la función que usa tu Login.jsx
+  const login = async (email, password) => {
+    // Llamamos al backend
+    const data = await loginUser({ email, password })
+    // data = { token, user: { ... } } según tu AuthController
+
+    setUser(data.user)
     setToken(data.token)
-    setUser(data.user ?? null)
+    localStorage.setItem('auth', JSON.stringify(data))
   }
 
-  function logout() {
-    localStorage.removeItem('token')
-    setToken(null)
+  const logout = () => {
     setUser(null)
-    if (!location.pathname.startsWith('/login')) location.assign('/login')
+    setToken(null)
+    localStorage.removeItem('auth')
   }
 
-  const value = useMemo(() => ({
-    token,
+  const value = {
     user,
-    isAuthenticated: !!token,
+    token,
+    isAuthenticated,
     login,
     logout,
-    loading,
-  }), [token, user, loading])
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth debe usarse dentro de <AuthProvider>')
+  if (!ctx) {
+    throw new Error('useAuth debe usarse dentro de <AuthProvider>')
+  }
   return ctx
 }
