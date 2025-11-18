@@ -11,7 +11,7 @@ import { createUser } from '../../api/users'
 export default function Register() {
   const navigate = useNavigate()
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState({  
     name: '',
     lastName: '',
     email: '',
