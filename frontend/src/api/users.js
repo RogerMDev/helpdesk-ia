@@ -25,3 +25,25 @@ export async function createUser(payload) {
   // Si va bien, devolvemos el body (UserResponse)
   return res.json()
 }
+export async function loginUser(payload) {
+  const res = await fetch(`${API_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    let message = 'No se pudo iniciar sesión.'
+    try {
+      const data = await res.json()
+      if (data?.message) message = data.message   // "Credenciales incorrectas", etc.
+    } catch {
+      // nada
+    }
+    throw new Error(message)
+  }
+
+  return res.json() // AuthResponse { token, user }
+}
