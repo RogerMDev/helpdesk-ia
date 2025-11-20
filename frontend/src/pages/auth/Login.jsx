@@ -13,7 +13,7 @@ export default function Login() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, isAuthenticated } = useAuth()
+  const { login, isAuthenticated, user } = useAuth()
 
   useEffect(() => {
     const qs = new URLSearchParams(location.search)
@@ -22,8 +22,17 @@ export default function Login() {
   }, [location.search])
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/tickets', { replace: true })
-  }, [isAuthenticated, navigate])
+    if (isAuthenticated) {
+      const roleId =
+        user?.roleId ??
+        user?.user_roles_id_fk ??
+        user?.user_role_id_pk ??
+        user?.role ??
+        user?.user_role
+      const isAdmin = String(roleId) === '1' || user?.role === 'admin'
+      navigate(isAdmin ? '/admin' : '/tickets', { replace: true })
+    }
+  }, [isAuthenticated, user, navigate])
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -32,8 +41,15 @@ export default function Login() {
     setLoading(true)
     try {
       if (!email || !password) throw new Error('Rellena todos los campos')
-      await login(email, password)
-      const from = location.state?.from || '/tickets'
+      const data = await login(email, password)
+      const roleId =
+        data?.user?.roleId ??
+        data?.user?.user_roles_id_fk ??
+        data?.user?.user_role_id_pk ??
+        data?.user?.role ??
+        data?.user?.user_role
+      const isAdmin = String(roleId) === '1' || data?.user?.role === 'admin'
+      const from = location.state?.from || (isAdmin ? '/admin' : '/tickets')
       navigate(from, { replace: true })
     } catch (err) {
       setError(err.message || 'No se pudo iniciar sesión')

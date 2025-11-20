@@ -8,6 +8,8 @@ import TicketsHome from './pages/tickets/TicketsHome.jsx'
 import NewTicket from './pages/tickets/NewTicket.jsx'
 import Profile from './pages/account/Profile.jsx'
 import RequireAuth from './router/RequireAuth.jsx'
+import RequireAdmin from './router/RequireAdmin.jsx'
+import AdminDashboard from './pages/admin/AdminDashboard.jsx'
 
 export default function App() {
   const { isAuthenticated } = useAuth()
@@ -41,6 +43,14 @@ export default function App() {
           <RequireAuth>
             <NewTicket />
           </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <RequireAdmin>
+            <AdminDashboard />
+          </RequireAdmin>
         }
       />
 

@@ -4,10 +4,12 @@ import Button from '../../components/ui/Button.jsx'
 import Input from '../../components/ui/Input.jsx'
 
 const PRIORITIES = ['Baja', 'Media', 'Alta']
+const CATEGORIES = ['Red', 'Accesos', 'Licencias', 'Hardware', 'Software', 'Otro']
 
 export default function NewTicket() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
+    category: '',
     priority: '',
     title: '',
     description: '',
@@ -59,25 +61,42 @@ export default function NewTicket() {
             <div className="space-y-1">
               <h1 className="text-2xl font-semibold text-slate-900">Crear Nuevo Ticket</h1>
               <p className="text-sm text-slate-600">Completa la informacion del ticket</p>
-              <p className="text-xs text-slate-500">La categoria y el departamento se asignan automaticamente.</p>
             </div>
 
             <form onSubmit={onSubmit} className="mt-8 space-y-6">
-              <Input
-                label="Prioridad"
-                name="priority"
-                as="select"
-                value={form.priority}
-                onChange={onChange}
-                placeholder="Seleccionar prioridad"
-              >
-                <option value="">Seleccionar prioridad</option>
-                {PRIORITIES.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </Input>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="Tipologia"
+                  name="category"
+                  as="select"
+                  value={form.category}
+                  onChange={onChange}
+                  placeholder="Seleccionar tipologia"
+                >
+                  <option value="">Seleccionar tipologia</option>
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Input>
+
+                <Input
+                  label="Prioridad"
+                  name="priority"
+                  as="select"
+                  value={form.priority}
+                  onChange={onChange}
+                  placeholder="Seleccionar prioridad"
+                >
+                  <option value="">Seleccionar prioridad</option>
+                  {PRIORITIES.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </Input>
+              </div>
 
               <Input
                 label="Titulo del ticket"

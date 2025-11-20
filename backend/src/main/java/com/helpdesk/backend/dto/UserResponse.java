@@ -2,6 +2,7 @@ package com.helpdesk.backend.dto;
 
 public class UserResponse {
   private Long id;
+  private Integer roleId;
   private String name;
   private String lastName;
   private String email;
@@ -9,8 +10,9 @@ public class UserResponse {
 
   public UserResponse() {}
 
-  public UserResponse(Long id, String name, String lastName, String email, String phone) {
+  public UserResponse(Long id, Integer roleId, String name, String lastName, String email, String phone) {
     this.id = id;
+    this.roleId = roleId;
     this.name = name;
     this.lastName = lastName;
     this.email = email;
@@ -19,6 +21,9 @@ public class UserResponse {
 
   public Long getId() { return id; }
   public void setId(Long id) { this.id = id; }
+
+  public Integer getRoleId() { return roleId; }
+  public void setRoleId(Integer roleId) { this.roleId = roleId; }
 
   public String getName() { return name; }
   public void setName(String name) { this.name = name; }

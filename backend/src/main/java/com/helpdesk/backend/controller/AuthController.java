@@ -65,7 +65,12 @@ public class AuthController {
     User saved = userRepository.save(u);
 
     UserResponse out = new UserResponse(
-        saved.getId(), saved.getName(), saved.getLastName(), saved.getEmail(), saved.getPhone()
+        saved.getId(),
+        saved.getRole() != null ? saved.getRole().getId() : null,
+        saved.getName(),
+        saved.getLastName(),
+        saved.getEmail(),
+        saved.getPhone()
     );
     return ResponseEntity.status(HttpStatus.CREATED).body(out);
   }
@@ -80,7 +85,14 @@ public class AuthController {
     User u = maybe.get();
     AuthResponse resp = new AuthResponse(
         UUID.randomUUID().toString(),
-        new UserResponse(u.getId(), u.getName(), u.getLastName(), u.getEmail(), u.getPhone())
+        new UserResponse(
+            u.getId(),
+            u.getRole() != null ? u.getRole().getId() : null,
+            u.getName(),
+            u.getLastName(),
+            u.getEmail(),
+            u.getPhone()
+        )
     );
     return ResponseEntity.ok(resp);
   }

@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useState } from 'react'
-import { loginUser } from '../api/users' 
+import { loginUser } from '../api/users'
 
 const AuthContext = createContext(null)
 
@@ -9,7 +9,6 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null)
   const isAuthenticated = !!user && !!token
 
-  // Al cargar la app, intenta restaurar la sesión de localStorage
   useEffect(() => {
     const stored = localStorage.getItem('auth')
     if (stored) {
@@ -20,21 +19,17 @@ export function AuthProvider({ children }) {
           setToken(parsed.token)
         }
       } catch {
-        // Si está corrupto, lo limpiamos
         localStorage.removeItem('auth')
       }
     }
   }, [])
 
-  // 👇 Esta es la función que usa tu Login.jsx
   const login = async (email, password) => {
-    // Llamamos al backend
     const data = await loginUser({ email, password })
-    // data = { token, user: { ... } } según tu AuthController
-
     setUser(data.user)
     setToken(data.token)
     localStorage.setItem('auth', JSON.stringify(data))
+    return data
   }
 
   const logout = () => {

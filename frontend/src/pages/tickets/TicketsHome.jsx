@@ -77,6 +77,14 @@ export default function TicketsHome() {
 
   const displayName = user?.name || 'Usuario'
   const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
+  const roleId =
+    user?.roleId ??
+    user?.user_roles_id_fk ??
+    user?.user_role_id_pk ??
+    user?.role ??
+    user?.user_role
+
+  const isAdmin = String(roleId) === '1' || user?.role === 'admin'
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -148,6 +156,18 @@ export default function TicketsHome() {
 
               {showMenu && (
                 <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-200 bg-white shadow-lg py-1">
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenu(false)
+                        navigate('/admin')
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      Panel admin
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={handleProfile}
