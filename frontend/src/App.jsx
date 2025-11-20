@@ -5,6 +5,7 @@ import './index.css'
 import Login from './pages/auth/Login.jsx'
 import Register from './pages/auth/Register.jsx'
 import TicketsHome from './pages/tickets/TicketsHome.jsx'
+import NewTicket from './pages/tickets/NewTicket.jsx'
 import Profile from './pages/account/Profile.jsx'
 import RequireAuth from './router/RequireAuth.jsx'
 
@@ -31,6 +32,14 @@ export default function App() {
         element={
           <RequireAuth>
             <TicketsHome />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/tickets/new"
+        element={
+          <RequireAuth>
+            <NewTicket />
           </RequireAuth>
         }
       />
