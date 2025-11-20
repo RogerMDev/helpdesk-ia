@@ -146,19 +146,16 @@ export default function AdminDashboard() {
             </div>
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {CATEGORY_LABELS.map((cat, idx) => {
+              {CATEGORY_LABELS.map((cat) => {
                 const isSelected = selectedCategory === cat
-                const baseAlt = idx % 2 === 0
-                  ? 'border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:bg-blue-50'
-                  : 'border-blue-100 bg-blue-50 text-blue-800 hover:border-blue-200 hover:bg-blue-100'
-
+                const base = 'border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:bg-blue-50'
                 const selectedStyles = 'border-blue-500 bg-blue-600 text-white shadow-sm'
 
                 return (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`rounded-xl border px-3 py-3 text-left transition ${isSelected ? selectedStyles : baseAlt}`}
+                    className={`rounded-xl border px-3 py-3 text-left transition ${isSelected ? selectedStyles : base}`}
                   >
                     <div className="text-sm font-semibold">{cat}</div>
                     <div className={`text-xs ${isSelected ? 'text-white/90' : 'text-slate-500'}`}>
