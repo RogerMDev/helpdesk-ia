@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -16,13 +16,6 @@ const MOCK_TICKETS = [
   { id: 'TKT-208', title: 'Consulta general', requester: 'Lucia Rios', priority: 'Baja', statusId: 1, status: 'Abierto', category: 'Otro', date: '12/11/2025' },
 ]
 
-const MOCK_USERS = [
-  { id: 1, name: 'Laura Martin', email: 'laura@empresa.com', role: 0 },
-  { id: 2, name: 'Carlos Ruiz', email: 'carlos@empresa.com', role: 1 },
-  { id: 3, name: 'Ana Perez', email: 'ana@empresa.com', role: 0 },
-  { id: 4, name: 'Marta Lopez', email: 'marta@empresa.com', role: 0 },
-]
-
 function priorityClasses(priority) {
   switch (priority) {
     case 'Alta':
@@ -37,16 +30,25 @@ function priorityClasses(priority) {
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const [selectedCategory, setSelectedCategory] = useState(CATEGORY_LABELS[0])
-  const [users, setUsers] = useState(MOCK_USERS)
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef(null)
+
+  const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (showMenu && menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showMenu])
 
   const openTickets = useMemo(
     () => MOCK_TICKETS.filter((t) => t.statusId !== 3 && t.statusId !== 4),
-    []
-  )
-  const closedTickets = useMemo(
-    () => MOCK_TICKETS.filter((t) => t.statusId === 3 || t.statusId === 4),
     []
   )
 
@@ -63,17 +65,6 @@ export default function AdminDashboard() {
     [openTickets, selectedCategory]
   )
 
-  const toggleAdmin = (id) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === id
-          ? { ...u, role: u.role === 1 ? 0 : 1 }
-          : u
-      )
-    )
-    // TODO: llamada al backend para persistir
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="w-full bg-white border-b border-slate-200">
@@ -88,17 +79,64 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-600">Admin: {user?.name || 'Admin'}</span>
-            <Button variant="ghost" onClick={() => navigate('/tickets')} className="px-4 py-2">
-              Volver a tickets
-            </Button>
+          <div className="flex items-center gap-4">
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setShowMenu((v) => !v)}
+                className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
+                title="Menu de usuario"
+              >
+                {avatarInitial}
+              </button>
+              {showMenu && (
+                <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-200 bg-white shadow-lg py-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false)
+                      navigate('/account')
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Perfil
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false)
+                      logout()
+                      navigate('/login', { replace: true })
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={() => navigate('/admin/resolved')}
+              className="sm:w-auto"
+            >
+              Ver tickets resueltos / cerrados
+            </Button>
+            <Button
+              onClick={() => navigate('/admin/users')}
+              variant="ghost"
+              className="sm:w-auto border border-slate-200 text-slate-700"
+            >
+              Gestion de usuarios
+            </Button>
+          </div>
+
           <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
@@ -108,20 +146,27 @@ export default function AdminDashboard() {
             </div>
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {CATEGORY_LABELS.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`rounded-xl border px-3 py-3 text-left transition ${
-                    selectedCategory === cat
-                      ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                      : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-blue-200 hover:bg-blue-50'
-                  }`}
-                >
-                  <div className="text-sm font-semibold">{cat}</div>
-                  <div className="text-xs text-slate-500">Abiertos: {countsByCategory[cat] || 0}</div>
-                </button>
-              ))}
+              {CATEGORY_LABELS.map((cat, idx) => {
+                const isSelected = selectedCategory === cat
+                const baseAlt = idx % 2 === 0
+                  ? 'border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:bg-blue-50'
+                  : 'border-blue-100 bg-blue-50 text-blue-800 hover:border-blue-200 hover:bg-blue-100'
+
+                const selectedStyles = 'border-blue-500 bg-blue-600 text-white shadow-sm'
+
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`rounded-xl border px-3 py-3 text-left transition ${isSelected ? selectedStyles : baseAlt}`}
+                  >
+                    <div className="text-sm font-semibold">{cat}</div>
+                    <div className={`text-xs ${isSelected ? 'text-white/90' : 'text-slate-500'}`}>
+                      Abiertos: {countsByCategory[cat] || 0}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
 
             <div className="mt-6 space-y-3">
@@ -167,84 +212,6 @@ export default function AdminDashboard() {
                   </article>
                 ))
               )}
-            </div>
-          </section>
-
-          <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900">Tickets resueltos / cerrados</h2>
-              <p className="text-sm text-slate-500">Estados 3 y 4 (resolved o closed).</p>
-            </div>
-            {closedTickets.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                No hay tickets completados.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {closedTickets.map((t) => (
-                  <article
-                    key={t.id}
-                    className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl bg-white border border-slate-200 px-4 py-3 shadow-sm"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-blue-700 font-semibold">{t.id}</span>
-                        <span className="text-slate-400">·</span>
-                        <span className="font-medium text-slate-900 truncate">{t.title}</span>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {t.category} · {t.requester}
-                      </p>
-                    </div>
-                    <span className="text-xs text-slate-500">{t.status}</span>
-                    <span
-                      className={
-                        'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ' +
-                        priorityClasses(t.priority)
-                      }
-                    >
-                      {t.priority}
-                    </span>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900">Gestion de usuarios</h2>
-              <p className="text-sm text-slate-500">Edita perfiles y cambia roles a admin.</p>
-            </div>
-            <div className="space-y-2">
-              {users.map((u) => (
-                <div
-                  key={u.id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800">{u.name}</p>
-                    <p className="text-xs text-slate-500">{u.email}</p>
-                  </div>
-                  <span
-                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      u.role === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'
-                    }`}
-                  >
-                    {u.role === 1 ? 'Admin' : 'Usuario'}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="border border-slate-200 text-slate-700 px-3 py-2"
-                      onClick={() => toggleAdmin(u.id)}
-                    >
-                      {u.role === 1 ? 'Quitar admin' : 'Hacer admin'}
-                    </Button>
-                  </div>
-                </div>
-              ))}
             </div>
           </section>
         </div>

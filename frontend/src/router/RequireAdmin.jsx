@@ -2,8 +2,10 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function RequireAdmin({ children }) {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, isReady, user } = useAuth()
   const location = useLocation()
+
+  if (!isReady) return null
 
   const roleId =
     user?.roleId ??
@@ -12,14 +14,12 @@ export default function RequireAdmin({ children }) {
     user?.role ??
     user?.user_role
 
-  const isAdmin =
-    String(roleId) === '1' ||
-    user?.role === 'admin'
+  const isAdmin = String(roleId) === '1' || user?.role === 'admin'
 
   if (!isAuthenticated || !isAdmin) {
     return (
       <Navigate
-        to="/tickets"
+        to="/login"
         state={{ from: location.pathname }}
         replace
       />

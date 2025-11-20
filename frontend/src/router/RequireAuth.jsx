@@ -2,10 +2,11 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function RequireAuth({ children }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isReady } = useAuth()
   const location = useLocation()
 
-  // Si NO está logueado, lo mandamos a /login
+  if (!isReady) return null
+
   if (!isAuthenticated) {
     return (
       <Navigate
@@ -16,6 +17,5 @@ export default function RequireAuth({ children }) {
     )
   }
 
-  // Si está logueado, mostramos la página protegida
   return children
 }

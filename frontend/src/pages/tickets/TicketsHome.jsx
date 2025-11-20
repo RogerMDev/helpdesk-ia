@@ -69,7 +69,7 @@ function statusClasses(status) {
 }
 
 export default function TicketsHome() {
-  const { user, logout } = useAuth()
+  const { user, logout, isReady, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [showMenu, setShowMenu] = useState(false)
@@ -95,6 +95,13 @@ export default function TicketsHome() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showMenu])
+
+  useEffect(() => {
+    if (!isReady) return
+    if (isAuthenticated && isAdmin) {
+      navigate('/admin', { replace: true })
+    }
+  }, [isAdmin, isAuthenticated, isReady, navigate])
 
   const filteredTickets = useMemo(() => {
     const term = search.trim().toLowerCase()

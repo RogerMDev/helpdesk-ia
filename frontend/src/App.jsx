@@ -10,6 +10,8 @@ import Profile from './pages/account/Profile.jsx'
 import RequireAuth from './router/RequireAuth.jsx'
 import RequireAdmin from './router/RequireAdmin.jsx'
 import AdminDashboard from './pages/admin/AdminDashboard.jsx'
+import AdminResolved from './pages/admin/AdminResolved.jsx'
+import AdminUsers from './pages/admin/AdminUsers.jsx'
 
 export default function App() {
   const { isAuthenticated } = useAuth()
@@ -50,6 +52,22 @@ export default function App() {
         element={
           <RequireAdmin>
             <AdminDashboard />
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/resolved"
+        element={
+          <RequireAdmin>
+            <AdminResolved />
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <RequireAdmin>
+            <AdminUsers />
           </RequireAdmin>
         }
       />

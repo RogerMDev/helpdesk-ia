@@ -13,7 +13,7 @@ export default function Login() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, isAuthenticated, user } = useAuth()
+  const { login, isAuthenticated, user, isReady } = useAuth()
 
   useEffect(() => {
     const qs = new URLSearchParams(location.search)
@@ -22,6 +22,7 @@ export default function Login() {
   }, [location.search])
 
   useEffect(() => {
+    if (!isReady) return
     if (isAuthenticated) {
       const roleId =
         user?.roleId ??
@@ -32,7 +33,7 @@ export default function Login() {
       const isAdmin = String(roleId) === '1' || user?.role === 'admin'
       navigate(isAdmin ? '/admin' : '/tickets', { replace: true })
     }
-  }, [isAuthenticated, user, navigate])
+  }, [isAuthenticated, user, isReady, navigate])
 
   async function onSubmit(e) {
     e.preventDefault()
