@@ -1,14 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
 
-// TODO: Sustituir esto por datos reales del backend cuando tengas /api/tickets
 const MOCK_TICKETS = [
   {
     id: 'TKT-001',
     title: 'Error en login',
-    requester: 'Ana García',
+    requester: 'Ana Garcia',
     assignee: 'Carlos Ruiz',
     priority: 'Alta',
     status: 'Abierto',
@@ -18,7 +17,7 @@ const MOCK_TICKETS = [
     id: 'TKT-002',
     title: 'Problema con reportes',
     requester: 'Carlos Ruiz',
-    assignee: 'Laura Martín',
+    assignee: 'Laura Martin',
     priority: 'Media',
     status: 'En Progreso',
     date: '14/10/2025',
@@ -26,8 +25,8 @@ const MOCK_TICKETS = [
   {
     id: 'TKT-003',
     title: 'Solicitud de acceso',
-    requester: 'María López',
-    assignee: 'Tú mismo',
+    requester: 'Maria Lopez',
+    assignee: 'Tu mismo',
     priority: 'Baja',
     status: 'Abierto',
     date: '13/10/2025',
@@ -35,7 +34,7 @@ const MOCK_TICKETS = [
   {
     id: 'TKT-004',
     title: 'Bug en dashboard',
-    requester: 'Juan Pérez',
+    requester: 'Juan Perez',
     assignee: 'Equipo Front',
     priority: 'Alta',
     status: 'Abierto',
@@ -70,17 +69,25 @@ function statusClasses(status) {
 }
 
 export default function TicketsHome() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef(null)
 
   const displayName = user?.name || 'Usuario'
+  const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
-  const avatarInitial = (user?.name || user?.email || '?')
-    .charAt(0)
-    .toUpperCase()
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showMenu && menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showMenu])
 
-  // Filtro simple por ID, título o requester
   const filteredTickets = useMemo(() => {
     const term = search.trim().toLowerCase()
     if (!term) return MOCK_TICKETS
@@ -94,23 +101,26 @@ export default function TicketsHome() {
   }, [search])
 
   const handleNewTicket = () => {
-    // Más adelante aquí navegas al formulario real de creación
     navigate('/tickets/new')
   }
 
   const handleOpenTicket = (id) => {
-    // Navegar al detalle cuando exista
     navigate(`/tickets/${id}`)
   }
 
   const handleProfile = () => {
-    // Pantalla de usuario / ajustes
+    setShowMenu(false)
     navigate('/account')
+  }
+
+  const handleLogout = () => {
+    setShowMenu(false)
+    logout()
+    navigate('/login', { replace: true })
   }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Header superior */}
       <header className="w-full bg-white border-b border-slate-200">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -121,38 +131,52 @@ export default function TicketsHome() {
               <span className="text-sm font-semibold text-slate-900">
                 Helpia · Sistema de tickets
               </span>
-              <span className="text-xs text-slate-500">
-                Panel principal
-              </span>
+              <span className="text-xs text-slate-500">Panel principal</span>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Aquí podrías poner un icono de notificaciones en el futuro */}
-            <button
-              type="button"
-              onClick={handleProfile}
-              className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
-              title="Ver perfil"
-            >
-              {avatarInitial}
-            </button>
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setShowMenu((v) => !v)}
+                className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
+                title="Menu de usuario"
+              >
+                {avatarInitial}
+              </button>
+
+              {showMenu && (
+                <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-200 bg-white shadow-lg py-1">
+                  <button
+                    type="button"
+                    onClick={handleProfile}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Perfil
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full text-left px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Contenido principal */}
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
-          {/* Hola + CTA nuevo ticket */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <p className="text-sm text-slate-500">
-                Hola, <span className="font-semibold text-slate-800">{displayName}</span> 👋
+                Hola, <span className="font-semibold text-slate-800">{displayName}</span>
               </p>
-              <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                Tus tickets
-              </h2>
+              <h2 className="mt-1 text-xl font-semibold text-slate-900">Tus tickets</h2>
               <p className="text-sm text-slate-500">
                 Revisa el estado de tus incidencias y crea nuevas solicitudes.
               </p>
@@ -163,18 +187,17 @@ export default function TicketsHome() {
             </Button>
           </div>
 
-          {/* Barra de búsqueda + filtros */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="relative flex-1">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar tickets por ID, título o usuario…"
+                placeholder="Buscar tickets por ID, titulo o usuario..."
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
               <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400 text-xs">
-                ⌕
+                🔍
               </span>
             </div>
 
@@ -189,7 +212,6 @@ export default function TicketsHome() {
             </div>
           </div>
 
-          {/* Lista de tickets */}
           <section className="space-y-3">
             {filteredTickets.map((ticket) => (
               <article
@@ -199,17 +221,11 @@ export default function TicketsHome() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-blue-700 font-semibold hover:underline">
-                      {ticket.id}
-                    </span>
+                    <span className="text-blue-700 font-semibold hover:underline">{ticket.id}</span>
                     <span className="text-slate-400">·</span>
-                    <span className="font-medium text-slate-900 truncate">
-                      {ticket.title}
-                    </span>
+                    <span className="font-medium text-slate-900 truncate">{ticket.title}</span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Creado por: {ticket.requester}
-                  </p>
+                  <p className="mt-1 text-xs text-slate-500">Creado por: {ticket.requester}</p>
                   <p className="mt-0.5 text-xs text-slate-500">
                     Asignado a: <span className="font-medium text-slate-700">{ticket.assignee}</span>
                   </p>
@@ -232,9 +248,7 @@ export default function TicketsHome() {
                   >
                     {ticket.status}
                   </span>
-                  <span className="ml-auto text-xs text-slate-500 whitespace-nowrap">
-                    {ticket.date}
-                  </span>
+                  <span className="ml-auto text-xs text-slate-500 whitespace-nowrap">{ticket.date}</span>
                 </div>
               </article>
             ))}
