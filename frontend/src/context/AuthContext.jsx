@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useState } from 'react'
-import { loginUser } from '../api/users'
+import { loginUser } from '../api/auth'   
 
 const AuthContext = createContext(null)
 
@@ -26,10 +26,29 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const data = await loginUser({ email, password })
-    setUser(data.user)
+    console.log('LOGIN RESPONSE:', data)
+
+    const u = data.user || data
+
+    const normalizedUser = {
+      id: u.id ?? u.user_id_pk,
+      name: u.name,
+      lastName: u.lastName ?? u.last_name ?? null,
+      email: u.email,
+      phone: u.phone ?? null,
+      // 👇 ajusta estos nombres según lo que devuelva tu backend
+      roleId: u.user_roles_id_fk ?? u.roleId ?? null,
+      roleName: u.roleName ?? u.role ?? null,
+    }
+
+    setUser(normalizedUser)
     setToken(data.token)
-    localStorage.setItem('auth', JSON.stringify(data))
-    return data
+    localStorage.setItem(
+      'auth',
+      JSON.stringify({ user: normalizedUser, token: data.token })
+    )
+
+    return { user: normalizedUser, token: data.token }
   }
 
   const logout = () => {
@@ -38,13 +57,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('auth')
   }
 
-  const value = {
-    user,
-    token,
-    isAuthenticated,
-    login,
-    logout,
-  }
+  const value = { user, token, isAuthenticated, login, logout }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

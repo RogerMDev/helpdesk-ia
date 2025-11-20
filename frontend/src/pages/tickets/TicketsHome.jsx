@@ -77,14 +77,14 @@ export default function TicketsHome() {
 
   const displayName = user?.name || 'Usuario'
   const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
-  const roleId =
-    user?.roleId ??
-    user?.user_roles_id_fk ??
-    user?.user_role_id_pk ??
-    user?.role ??
-    user?.user_role
 
-  const isAdmin = String(roleId) === '1' || user?.role === 'admin'
+  // ✅ Marcamos admin por email (puedes usar id si prefieres)
+  const isAdmin =
+    user?.email === 'roger.admin.helpdesk@gmail.com' ||
+    user?.id === 1
+
+  console.log('USER EN TICKETSHOME:', user)
+  console.log('isAdmin:', isAdmin)
 
   useEffect(() => {
     const handleClickOutside = (e) => {
