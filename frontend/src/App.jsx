@@ -7,6 +7,7 @@ import Register from './pages/auth/Register.jsx'
 import TicketsHome from './pages/tickets/TicketsHome.jsx'
 import NewTicket from './pages/tickets/NewTicket.jsx'
 import Profile from './pages/account/Profile.jsx'
+import TicketDetail from './pages/tickets/TicketDetail.jsx'
 import RequireAuth from './router/RequireAuth.jsx'
 import RequireAdmin from './router/RequireAdmin.jsx'
 import AdminDashboard from './pages/admin/AdminDashboard.jsx'
@@ -44,6 +45,14 @@ export default function App() {
         element={
           <RequireAuth>
             <NewTicket />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/tickets/:id"
+        element={
+          <RequireAuth>
+            <TicketDetail />
           </RequireAuth>
         }
       />
