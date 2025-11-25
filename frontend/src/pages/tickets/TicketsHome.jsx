@@ -45,6 +45,15 @@ function statusLabelFromId(id) {
   }
 }
 
+function formatDateTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const d = date.toLocaleDateString('es-ES')
+  const t = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+  return `${d} | ${t}`
+}
+
 export default function TicketsHome() {
   const { user, logout, isReady, isAuthenticated } = useAuth()
   const navigate = useNavigate()
@@ -59,9 +68,13 @@ export default function TicketsHome() {
   const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
   // ✅ Marcamos admin por email (puedes usar id si prefieres)
-  const isAdmin =
-    user?.email === 'roger.admin.helpdesk@gmail.com' ||
-    user?.id === 1
+  const roleId =
+    user?.roleId ??
+    user?.user_roles_id_fk ??
+    user?.user_role_id_pk ??
+    user?.role ??
+    user?.user_role
+  const isAdmin = String(roleId) === '1' || user?.role === 'admin'
 
   console.log('USER EN TICKETSHOME:', user)
   console.log('isAdmin:', isAdmin)
@@ -102,6 +115,8 @@ export default function TicketsHome() {
   const normalized = useMemo(() => {
     return (tickets || []).map((t) => {
       const statusLabel = statusLabelFromId(t.statusId || t.status_id_fk || t.status_id_pk)
+      const created = t.createdAt || t.created_at || ''
+      const formattedDate = formatDateTime(created)
       return {
         id: t.id?.toString() ?? t.ticket_id_pk?.toString() ?? '',
         title: t.title || '',
@@ -109,22 +124,24 @@ export default function TicketsHome() {
         assignee: t.assignee || t.assigneeName || (t.assigneeId ? `Asignado (${t.assigneeId})` : 'Sin asignar'),
         priority: t.priority || 'N/A',
         status: statusLabel,
-        date: t.createdAt || t.created_at || '',
+        date: formattedDate,
+        createdById: t.createdById || t.created_by_fk || null,
       }
     })
   }, [tickets])
 
   const filteredTickets = useMemo(() => {
     const term = search.trim().toLowerCase()
-    if (!term) return normalized
-    return normalized.filter((t) => {
+    const base = normalized.filter((t) => (isAdmin ? true : t.createdById === user?.id))
+    if (!term) return base
+    return base.filter((t) => {
       return (
         t.id.toLowerCase().includes(term) ||
         t.title.toLowerCase().includes(term) ||
         t.requester.toLowerCase().includes(term)
       )
     })
-  }, [search, normalized])
+  }, [search, normalized, isAdmin, user?.id])
 
   const handleNewTicket = () => {
     navigate('/tickets/new')
@@ -298,7 +315,7 @@ export default function TicketsHome() {
                   >
                     {ticket.status}
                   </span>
-                  <span className="ml-auto text-xs text-slate-500 whitespace-nowrap">{ticket.date}</span>
+                  <span className="ml-auto text-xs text-slate-500 whitespace-nowrap pl-4">{ticket.date}</span>
                 </div>
               </article>
             ))}

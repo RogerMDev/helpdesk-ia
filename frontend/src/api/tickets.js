@@ -24,7 +24,13 @@ export async function fetchTicketById(id, token) {
     const message = await safeMessage(res)
     throw new Error(message)
   }
-  return res.json()
+  const text = await res.text()
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error('Respuesta de ticket no es JSON')
+  }
 }
 
 export async function createTicket(payload, token) {

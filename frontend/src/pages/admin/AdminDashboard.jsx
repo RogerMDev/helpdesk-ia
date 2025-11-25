@@ -98,6 +98,15 @@ export default function AdminDashboard() {
     [openTickets, selectedCategory]
   )
 
+  const formatDateTime = (value) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return value
+    const d = date.toLocaleDateString('es-ES')
+    const t = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    return `${d} | ${t}`
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="w-full bg-white border-b border-slate-200">
@@ -232,7 +241,7 @@ export default function AdminDashboard() {
                   const priority = t.priority || 'N/A'
                   const topic = t.category || t.topic || selectedCategory
                   const requester = t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`
-                  const date = t.createdAt || t.created_at || ''
+                  const date = formatDateTime(t.createdAt || t.created_at || '')
                   return (
                   <article
                     key={t.id}
@@ -247,7 +256,7 @@ export default function AdminDashboard() {
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5">Solicitado por {requester}</p>
                       <p className="text-xs text-slate-500">Tipologia: {topic}</p>
-                      <p className="text-xs text-slate-500">Fecha: {date}</p>
+                      <p className="text-xs text-slate-500 mt-1">Fecha: {date}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span

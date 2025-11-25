@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -36,12 +36,21 @@ function statusLabelFromId(id) {
   }
 }
 
+function formatDateTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const d = date.toLocaleDateString('es-ES')
+  const t = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+  return `${d} | ${t}`
+}
+
 export default function TicketDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const [ticket, setTicket] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState(MOCK_MESSAGES)
@@ -65,18 +74,21 @@ export default function TicketDetail() {
       setError('')
       try {
         const data = await fetchTicketById(id)
-        const statusLabel = statusLabelFromId(data.statusId || data.status_id_fk || data.status_id_pk)
+        const payload = Array.isArray(data) ? data[0] : data
+        if (!payload) throw new Error('Ticket no encontrado')
+        const statusLabel = statusLabelFromId(payload.statusId || payload.status_id_fk || payload.status_id_pk)
         setTicket({
-          id: data.id?.toString() ?? data.ticket_id_pk?.toString() ?? id,
-          title: data.title,
-          description: data.description,
-          requester: data.requester || data.createdByName || `Usuario ${data.createdById ?? ''}`,
-          assignee: data.assignee || data.assigneeName || (data.assigneeId ? `Asignado (${data.assigneeId})` : 'Sin asignar'),
-          priority: data.priority || 'N/A',
+          id: payload.id?.toString() ?? payload.ticket_id_pk?.toString() ?? id,
+          title: payload.title || `Ticket ${id}`,
+          description: payload.description || 'Sin descripción',
+          requester: payload.requester || payload.createdByName || `Usuario ${payload.createdById ?? ''}`,
+          assignee: payload.assignee || payload.assigneeName || (payload.assigneeId ? `Asignado (${payload.assigneeId})` : 'Sin asignar'),
+          priority: payload.priority || 'N/A',
           status: statusLabel,
-          openedAt: data.createdAt || data.created_at || '',
-          category: data.topic || data.category || '',
+          openedAt: payload.createdAt || payload.created_at || '',
+          category: payload.topic || payload.category || '',
         })
+        console.log('Ticket detail cargado:', payload)
       } catch (err) {
         setError(err.message || 'No se pudo cargar el ticket')
       } finally {
@@ -112,7 +124,9 @@ export default function TicketDetail() {
               <span className="text-white text-sm font-semibold">H</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold text-slate-900">Helpia · Ticket {ticket.id}</span>
+              <span className="text-sm font-semibold text-slate-900">
+                Helpia · Ticket {ticket?.id ?? id}
+              </span>
               <span className="text-xs text-slate-500">Detalle y conversación</span>
             </div>
           </div>
@@ -174,52 +188,58 @@ export default function TicketDetail() {
             </div>
           )}
 
+          {!ticket && !loading && !error && (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+              No se encontró el ticket.
+            </div>
+          )}
+
           {ticket && (
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  <p className="text-xs text-slate-500">{ticket.id}</p>
-                  <h1 className="text-2xl font-semibold text-slate-900">{ticket.title}</h1>
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <p className="text-xs text-slate-500">{ticket.id}</p>
+                    <h1 className="text-2xl font-semibold text-slate-900">{ticket.title}</h1>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={
+                        'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border ' +
+                        priorityClasses(ticket.priority)
+                      }
+                    >
+                      Prioridad {ticket.priority}
+                    </span>
+                    <span className="text-xs text-slate-500">Estado: {ticket.status}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={
-                      'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border ' +
-                      priorityClasses(ticket.priority)
-                    }
-                  >
-                    Prioridad {ticket.priority}
-                  </span>
-                  <span className="text-xs text-slate-500">Estado: {ticket.status}</span>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-700">
-                <div>
-                  <p className="font-semibold text-slate-900">Asignado a</p>
-                  <p>{ticket.assignee}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-700">
+                  <div>
+                    <p className="font-semibold text-slate-900">Asignado a</p>
+                    <p>{ticket.assignee}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">Solicitante</p>
+                    <p>{ticket.requester}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">Tipologia</p>
+                    <p>{ticket.category}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">Fecha de apertura</p>
+                    <p>{formatDateTime(ticket.openedAt)}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-slate-900">Solicitante</p>
-                  <p>{ticket.requester}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900">Tipologia</p>
-                  <p>{ticket.category}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900">Fecha de apertura</p>
-                  <p>{ticket.openedAt}</p>
-                </div>
-              </div>
 
-              <div>
-                <p className="font-semibold text-slate-900">Descripción</p>
-                <p className="text-sm text-slate-700 mt-1">{ticket.description}</p>
+                <div>
+                  <p className="font-semibold text-slate-900">Descripción</p>
+                  <p className="text-sm text-slate-700 mt-1">{ticket.description}</p>
+                </div>
               </div>
             </div>
-          </div>
           )}
 
           <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
