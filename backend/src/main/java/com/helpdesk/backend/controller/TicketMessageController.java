@@ -86,6 +86,7 @@ public class TicketMessageController {
     m.setTicket(ticket);
     m.setUser(user);
     m.setContent(dto.content().trim());
+    m.setCreatedAt(LocalDateTime.now());
 
     var saved = messages.save(m);
     return ResponseEntity

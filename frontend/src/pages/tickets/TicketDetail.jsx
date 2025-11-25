@@ -3,11 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { fetchTicketById } from '../../api/tickets.js'
-
-const MOCK_MESSAGES = [
-  { id: 1, author: 'Laura Martin', text: 'Buenos días, sigue sin conectar.', timestamp: '20/11/2025 10:20' },
-  { id: 2, author: 'Carlos Silva', text: 'Revisando logs de VPN.', timestamp: '20/11/2025 10:32' },
-]
+import { listMessages, createMessage, deleteMessage } from '../../api/messages.js'
 
 function priorityClasses(priority) {
   switch (priority) {
@@ -48,15 +44,23 @@ function formatDateTime(value) {
 export default function TicketDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, logout, token } = useAuth()
   const [ticket, setTicket] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [input, setInput] = useState('')
-  const [messages, setMessages] = useState(MOCK_MESSAGES)
+  const [messages, setMessages] = useState([])
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
   const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
+
+  const roleId =
+    user?.roleId ??
+    user?.user_roles_id_fk ??
+    user?.user_role_id_pk ??
+    user?.role ??
+    user?.user_role
+  const isAdmin = String(roleId) === '1' || user?.role === 'admin'
 
   useEffect(() => {
     const handler = (e) => {
@@ -73,7 +77,10 @@ export default function TicketDetail() {
       setLoading(true)
       setError('')
       try {
-        const data = await fetchTicketById(id)
+        const [data, msgs] = await Promise.all([
+          fetchTicketById(id),
+          listMessages(id),
+        ])
         const payload = Array.isArray(data) ? data[0] : data
         if (!payload) throw new Error('Ticket no encontrado')
         const statusLabel = statusLabelFromId(payload.statusId || payload.status_id_fk || payload.status_id_pk)
@@ -88,6 +95,15 @@ export default function TicketDetail() {
           openedAt: payload.createdAt || payload.created_at || '',
           category: payload.topic || payload.category || '',
         })
+        setMessages(
+          (msgs || []).map((m) => ({
+            id: m.id,
+            userId: m.userId,
+            ticketId: m.ticketId,
+            content: m.content,
+            createdAt: m.createdAt,
+          }))
+        )
         console.log('Ticket detail cargado:', payload)
       } catch (err) {
         setError(err.message || 'No se pudo cargar el ticket')
@@ -98,21 +114,36 @@ export default function TicketDetail() {
     load()
   }, [id])
 
-  const sendMessage = () => {
-    if (!input.trim()) return
-    const now = new Date()
-    const stamp = now.toLocaleString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-    setMessages((prev) => [
-      ...prev,
-      { id: prev.length + 1, author: user?.name || 'Usuario', text: input.trim(), timestamp: stamp },
-    ])
-    setInput('')
+  const sendMessage = async () => {
+    if (!input.trim() || !user?.id) return
+    try {
+      const saved = await createMessage(
+        { ticketId: Number(id), userId: user.id, content: input.trim() },
+        token
+      )
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: saved.id,
+          userId: saved.userId,
+          ticketId: saved.ticketId,
+          content: saved.content,
+          createdAt: saved.createdAt ?? new Date().toISOString(),
+        },
+      ])
+      setInput('')
+    } catch (err) {
+      setError(err.message || 'No se pudo enviar el mensaje')
+    }
+  }
+
+  const handleDelete = async (messageId) => {
+    try {
+      await deleteMessage(messageId, token)
+      setMessages((prev) => prev.filter((m) => m.id !== messageId))
+    } catch (err) {
+      setError(err.message || 'No se pudo borrar el mensaje')
+    }
   }
 
   return (
@@ -255,10 +286,23 @@ export default function TicketDetail() {
                   className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
                 >
                   <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span className="font-semibold text-slate-800">{m.author}</span>
-                    <span>{m.timestamp}</span>
+                    <span className="font-semibold text-slate-800">
+                      {m.userId === user?.id ? user?.name || 'Tú' : `Usuario ${m.userId ?? ''}`}
+                    </span>
+                    <span>{formatDateTime(m.createdAt) || 'Sin fecha'}</span>
                   </div>
-                  <p className="text-sm text-slate-800 mt-1">{m.text}</p>
+                  <p className="text-sm text-slate-800 mt-1">{m.content}</p>
+                  {(m.userId === user?.id || isAdmin) && (
+                    <div className="flex justify-end mt-2">
+                      <button
+                        type="button"
+                        className="text-xs text-rose-600 hover:text-rose-700 font-semibold"
+                        onClick={() => handleDelete(m.id)}
+                      >
+                        Borrar mensaje
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
               {messages.length === 0 && (
