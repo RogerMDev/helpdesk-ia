@@ -54,6 +54,12 @@ export default function AdminUsers() {
     // TODO: persistir via API
   }
 
+  const deleteUser = (id) => {
+    setUsers((prev) => prev.filter((u) => u.id !== id))
+    if (selected?.id === id) setSelected(null)
+    // TODO: eliminar via API
+  }
+
   const toggleAdmin = (u) => {
     const nextRole = u.roleId === 1 ? 0 : 1
     const updated = { ...u, roleId: nextRole }
@@ -173,6 +179,16 @@ export default function AdminUsers() {
                     }}
                   >
                     {u.roleId === 1 ? 'Quitar admin' : 'Hacer admin'}
+                  </button>
+                  <button
+                    type="button"
+                    className="mt-1 text-xs text-rose-600 hover:underline"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      deleteUser(u.id)
+                    }}
+                  >
+                    Eliminar usuario
                   </button>
                 </div>
               ))}

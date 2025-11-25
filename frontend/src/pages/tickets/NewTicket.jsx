@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import Input from '../../components/ui/Input.jsx'
+import { createTicket } from '../../api/tickets.js'
+import { useAuth } from '../../context/AuthContext.jsx'
 
 const PRIORITIES = ['Baja', 'Media', 'Alta']
 const CATEGORIES = ['Red', 'Accesos', 'Licencias', 'Hardware', 'Software', 'Otro']
 
 export default function NewTicket() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [form, setForm] = useState({
     category: '',
     priority: '',
@@ -15,6 +18,8 @@ export default function NewTicket() {
     description: '',
     file: null,
   })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const onChange = (e) => {
     const { name, value } = e.target
@@ -32,7 +37,21 @@ export default function NewTicket() {
 
   const onSubmit = (e) => {
     e.preventDefault()
-    // TODO: integrar con API para crear ticket
+    setError('')
+    setLoading(true)
+    const payload = {
+      createdById: user?.id,
+      assigneeId: null,
+      statusId: 1,
+      title: form.title,
+      description: form.description,
+      topic: form.category,
+      priority: form.priority,
+    }
+    createTicket(payload)
+      .then(() => navigate('/tickets'))
+      .catch((err) => setError(err.message || 'No se pudo crear el ticket'))
+      .finally(() => setLoading(false))
   }
 
   return (
@@ -64,6 +83,12 @@ export default function NewTicket() {
             </div>
 
             <form onSubmit={onSubmit} className="mt-8 space-y-6">
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {error}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="Tipologia"
@@ -163,8 +188,8 @@ export default function NewTicket() {
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1">
-                  Crear Ticket
+                <Button type="submit" className="flex-1" disabled={loading}>
+                  {loading ? 'Creando...' : 'Crear Ticket'}
                 </Button>
               </div>
             </form>

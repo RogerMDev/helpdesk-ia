@@ -2,19 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { fetchTickets } from '../../api/tickets.js'
 
 const CATEGORY_LABELS = ['Red', 'Accesos', 'Licencias', 'Hardware', 'Software', 'Otro']
-
-const MOCK_TICKETS = [
-  { id: 'TKT-201', title: 'VPN no conecta', requester: 'Laura Martin', priority: 'Alta', statusId: 1, status: 'Abierto', category: 'Red', date: '20/11/2025' },
-  { id: 'TKT-202', title: 'Pantalla parpadea', requester: 'Mario Ruiz', priority: 'Media', statusId: 2, status: 'En progreso', category: 'Hardware', date: '19/11/2025' },
-  { id: 'TKT-203', title: 'Crear usuario SAP', requester: 'Paula Gomez', priority: 'Alta', statusId: 1, status: 'Abierto', category: 'Accesos', date: '18/11/2025' },
-  { id: 'TKT-204', title: 'Licencia Office 365', requester: 'Ana Perez', priority: 'Baja', statusId: 3, status: 'Resuelto', category: 'Licencias', date: '16/11/2025' },
-  { id: 'TKT-205', title: 'Portatil no enciende', requester: 'Carlos Silva', priority: 'Alta', statusId: 1, status: 'Abierto', category: 'Hardware', date: '15/11/2025' },
-  { id: 'TKT-206', title: 'Error en CRM', requester: 'Marta Lopez', priority: 'Media', statusId: 4, status: 'Cerrado', category: 'Software', date: '14/11/2025' },
-  { id: 'TKT-207', title: 'Clave VPN caducada', requester: 'Jorge Cano', priority: 'Media', statusId: 2, status: 'En progreso', category: 'Accesos', date: '13/11/2025' },
-  { id: 'TKT-208', title: 'Consulta general', requester: 'Lucia Rios', priority: 'Baja', statusId: 1, status: 'Abierto', category: 'Otro', date: '12/11/2025' },
-]
 
 function priorityClasses(priority) {
   switch (priority) {
@@ -28,10 +18,28 @@ function priorityClasses(priority) {
   }
 }
 
+function statusLabelFromId(id) {
+  switch (Number(id)) {
+    case 1:
+      return 'Abierto'
+    case 2:
+      return 'En progreso'
+    case 3:
+      return 'Resuelto'
+    case 4:
+      return 'Cerrado'
+    default:
+      return 'Abierto'
+  }
+}
+
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const [selectedCategory, setSelectedCategory] = useState(CATEGORY_LABELS[0])
+  const [tickets, setTickets] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
 
@@ -47,21 +55,46 @@ export default function AdminDashboard() {
     return () => document.removeEventListener('mousedown', handler)
   }, [showMenu])
 
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await fetchTickets()
+        setTickets(data || [])
+      } catch (err) {
+        setError(err.message || 'No se pudieron cargar los tickets')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
   const openTickets = useMemo(
-    () => MOCK_TICKETS.filter((t) => t.statusId !== 3 && t.statusId !== 4),
-    []
+    () => (tickets || []).filter((t) => {
+      const statusId = t.statusId || t.status_id_fk || t.status_id_pk
+      return statusId !== 3 && statusId !== 4
+    }),
+    [tickets]
   )
 
   const countsByCategory = useMemo(() => {
     const counts = {}
     CATEGORY_LABELS.forEach((c) => {
-      counts[c] = openTickets.filter((t) => t.category === c).length
+      counts[c] = openTickets.filter((t) => {
+        const topic = t.category || t.topic || ''
+        return topic.toLowerCase() === c.toLowerCase()
+      }).length
     })
     return counts
   }, [openTickets])
 
   const ticketsBySelected = useMemo(
-    () => openTickets.filter((t) => t.category === selectedCategory),
+    () => openTickets.filter((t) => {
+      const topic = t.category || t.topic || ''
+      return topic.toLowerCase() === selectedCategory.toLowerCase()
+    }),
     [openTickets, selectedCategory]
   )
 
@@ -137,6 +170,12 @@ export default function AdminDashboard() {
             </Button>
           </div>
 
+          {error && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
+
           <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
@@ -176,12 +215,25 @@ export default function AdminDashboard() {
                 </span>
               </div>
 
-              {ticketsBySelected.length === 0 ? (
+              {loading && (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                  Cargando tickets...
+                </div>
+              )}
+
+              {!loading && ticketsBySelected.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
                   No hay tickets abiertos en esta tipologia.
                 </div>
               ) : (
-                ticketsBySelected.map((t) => (
+                ticketsBySelected.map((t) => {
+                  const statusId = t.statusId || t.status_id_fk || t.status_id_pk
+                  const statusLabel = statusLabelFromId(statusId)
+                  const priority = t.priority || 'N/A'
+                  const topic = t.category || t.topic || selectedCategory
+                  const requester = t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`
+                  const date = t.createdAt || t.created_at || ''
+                  return (
                   <article
                     key={t.id}
                     className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl bg-white border border-slate-200 px-4 py-3 shadow-sm hover:shadow transition cursor-pointer"
@@ -193,22 +245,24 @@ export default function AdminDashboard() {
                         <span className="text-slate-400">·</span>
                         <span className="font-medium text-slate-900 truncate">{t.title}</span>
                       </div>
-                      <p className="text-xs text-slate-500 mt-0.5">Solicitado por {t.requester}</p>
-                      <p className="text-xs text-slate-500">Fecha: {t.date}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Solicitado por {requester}</p>
+                      <p className="text-xs text-slate-500">Tipologia: {topic}</p>
+                      <p className="text-xs text-slate-500">Fecha: {date}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span
                         className={
                           'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ' +
-                          priorityClasses(t.priority)
+                          priorityClasses(priority)
                         }
                       >
-                        {t.priority}
+                        {priority}
                       </span>
-                      <span className="text-xs text-slate-500">{t.status}</span>
+                      <span className="text-xs text-slate-500">{statusLabel}</span>
                     </div>
                   </article>
-                ))
+                  )
+                })
               )}
             </div>
           </section>

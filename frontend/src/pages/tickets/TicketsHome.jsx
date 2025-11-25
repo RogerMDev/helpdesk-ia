@@ -2,45 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
-
-const MOCK_TICKETS = [
-  {
-    id: 'TKT-001',
-    title: 'Error en login',
-    requester: 'Ana Garcia',
-    assignee: 'Carlos Ruiz',
-    priority: 'Alta',
-    status: 'Abierto',
-    date: '15/10/2025',
-  },
-  {
-    id: 'TKT-002',
-    title: 'Problema con reportes',
-    requester: 'Carlos Ruiz',
-    assignee: 'Laura Martin',
-    priority: 'Media',
-    status: 'En Progreso',
-    date: '14/10/2025',
-  },
-  {
-    id: 'TKT-003',
-    title: 'Solicitud de acceso',
-    requester: 'Maria Lopez',
-    assignee: 'Tu mismo',
-    priority: 'Baja',
-    status: 'Abierto',
-    date: '13/10/2025',
-  },
-  {
-    id: 'TKT-004',
-    title: 'Bug en dashboard',
-    requester: 'Juan Perez',
-    assignee: 'Equipo Front',
-    priority: 'Alta',
-    status: 'Abierto',
-    date: '12/10/2025',
-  },
-]
+import { fetchTickets } from '../../api/tickets.js'
 
 function priorityClasses(priority) {
   switch (priority) {
@@ -68,9 +30,27 @@ function statusClasses(status) {
   }
 }
 
+function statusLabelFromId(id) {
+  switch (Number(id)) {
+    case 1:
+      return 'Abierto'
+    case 2:
+      return 'En Progreso'
+    case 3:
+      return 'Resuelto'
+    case 4:
+      return 'Cerrado'
+    default:
+      return 'Abierto'
+  }
+}
+
 export default function TicketsHome() {
   const { user, logout, isReady, isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const [tickets, setTickets] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
@@ -103,17 +83,48 @@ export default function TicketsHome() {
     }
   }, [isAdmin, isAuthenticated, isReady, navigate])
 
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await fetchTickets()
+        setTickets(data || [])
+      } catch (err) {
+        setError(err.message || 'No se pudieron cargar los tickets')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  const normalized = useMemo(() => {
+    return (tickets || []).map((t) => {
+      const statusLabel = statusLabelFromId(t.statusId || t.status_id_fk || t.status_id_pk)
+      return {
+        id: t.id?.toString() ?? t.ticket_id_pk?.toString() ?? '',
+        title: t.title || '',
+        requester: t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`,
+        assignee: t.assignee || t.assigneeName || (t.assigneeId ? `Asignado (${t.assigneeId})` : 'Sin asignar'),
+        priority: t.priority || 'N/A',
+        status: statusLabel,
+        date: t.createdAt || t.created_at || '',
+      }
+    })
+  }, [tickets])
+
   const filteredTickets = useMemo(() => {
     const term = search.trim().toLowerCase()
-    if (!term) return MOCK_TICKETS
-    return MOCK_TICKETS.filter((t) => {
+    if (!term) return normalized
+    return normalized.filter((t) => {
       return (
         t.id.toLowerCase().includes(term) ||
         t.title.toLowerCase().includes(term) ||
         t.requester.toLowerCase().includes(term)
       )
     })
-  }, [search])
+  }, [search, normalized])
 
   const handleNewTicket = () => {
     navigate('/tickets/new')
@@ -239,8 +250,20 @@ export default function TicketsHome() {
             </div>
           </div>
 
+          {error && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
+
           <section className="space-y-3">
-            {filteredTickets.map((ticket) => (
+            {loading && (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                Cargando tickets...
+              </div>
+            )}
+
+            {!loading && filteredTickets.map((ticket) => (
               <article
                 key={ticket.id}
                 className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl bg-white shadow-sm border border-slate-200 px-4 py-3 cursor-pointer hover:shadow-md transition"
@@ -280,7 +303,7 @@ export default function TicketsHome() {
               </article>
             ))}
 
-            {filteredTickets.length === 0 && (
+            {!loading && filteredTickets.length === 0 && (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
                 No se han encontrado tickets con ese criterio.
               </div>

@@ -1,32 +1,8 @@
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
-
-const MOCK_TICKETS = {
-  'TKT-201': {
-    id: 'TKT-201',
-    title: 'VPN no conecta',
-    description: 'El cliente no puede conectarse a la VPN corporativa desde su portatil.',
-    requester: 'Laura Martin',
-    assignee: 'Carlos Silva',
-    priority: 'Alta',
-    status: 'Abierto',
-    openedAt: '20/11/2025 10:15',
-    category: 'Red',
-  },
-  'TKT-205': {
-    id: 'TKT-205',
-    title: 'Portatil no enciende',
-    description: 'Equipo Dell no enciende tras actualización. Se requiere revisión de hardware.',
-    requester: 'Carlos Silva',
-    assignee: 'Equipo IT',
-    priority: 'Alta',
-    status: 'En progreso',
-    openedAt: '15/11/2025 09:40',
-    category: 'Hardware',
-  },
-}
+import { fetchTicketById } from '../../api/tickets.js'
 
 const MOCK_MESSAGES = [
   { id: 1, author: 'Laura Martin', text: 'Buenos días, sigue sin conectar.', timestamp: '20/11/2025 10:20' },
@@ -45,16 +21,32 @@ function priorityClasses(priority) {
   }
 }
 
+function statusLabelFromId(id) {
+  switch (Number(id)) {
+    case 1:
+      return 'Abierto'
+    case 2:
+      return 'En Progreso'
+    case 3:
+      return 'Resuelto'
+    case 4:
+      return 'Cerrado'
+    default:
+      return 'Abierto'
+  }
+}
+
 export default function TicketDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const [ticket, setTicket] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState(MOCK_MESSAGES)
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
-
-  const ticket = useMemo(() => MOCK_TICKETS[id] || MOCK_TICKETS['TKT-201'], [id])
   const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
   useEffect(() => {
@@ -66,6 +58,33 @@ export default function TicketDetail() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showMenu])
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await fetchTicketById(id)
+        const statusLabel = statusLabelFromId(data.statusId || data.status_id_fk || data.status_id_pk)
+        setTicket({
+          id: data.id?.toString() ?? data.ticket_id_pk?.toString() ?? id,
+          title: data.title,
+          description: data.description,
+          requester: data.requester || data.createdByName || `Usuario ${data.createdById ?? ''}`,
+          assignee: data.assignee || data.assigneeName || (data.assigneeId ? `Asignado (${data.assigneeId})` : 'Sin asignar'),
+          priority: data.priority || 'N/A',
+          status: statusLabel,
+          openedAt: data.createdAt || data.created_at || '',
+          category: data.topic || data.category || '',
+        })
+      } catch (err) {
+        setError(err.message || 'No se pudo cargar el ticket')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [id])
 
   const sendMessage = () => {
     if (!input.trim()) return
@@ -143,6 +162,19 @@ export default function TicketDetail() {
 
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+          {error && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
+
+          {!ticket && loading && (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+              Cargando ticket...
+            </div>
+          )}
+
+          {ticket && (
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
             <div className="flex flex-col gap-2">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -188,6 +220,7 @@ export default function TicketDetail() {
               </div>
             </div>
           </div>
+          )}
 
           <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
             <div className="flex items-center justify-between">

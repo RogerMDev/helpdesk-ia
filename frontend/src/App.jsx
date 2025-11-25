@@ -4,6 +4,8 @@ import { useAuth } from './context/AuthContext.jsx'
 import './index.css'
 import Login from './pages/auth/Login.jsx'
 import Register from './pages/auth/Register.jsx'
+import ForgotPassword from './pages/auth/ForgotPassword.jsx'
+import ResetPassword from './pages/auth/ResetPassword.jsx'
 import TicketsHome from './pages/tickets/TicketsHome.jsx'
 import NewTicket from './pages/tickets/NewTicket.jsx'
 import Profile from './pages/account/Profile.jsx'
@@ -22,6 +24,8 @@ export default function App() {
       {/* RUTAS PUBLICAS */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* RUTAS PROTEGIDAS */}
       <Route

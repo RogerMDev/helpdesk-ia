@@ -2,12 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
-
-const MOCK_CLOSED = [
-  { id: 'TKT-206', title: 'Error en CRM', requester: 'Marta Lopez', priority: 'Media', status: 'Cerrado', category: 'Software', date: '14/11/2025' },
-  { id: 'TKT-204', title: 'Licencia Office 365', requester: 'Ana Perez', priority: 'Baja', status: 'Resuelto', category: 'Licencias', date: '16/11/2025' },
-  { id: 'TKT-210', title: 'VPN caducada', requester: 'Jorge Cano', priority: 'Media', status: 'Resuelto', category: 'Accesos', date: '18/11/2025' },
-]
+import { fetchTickets } from '../../api/tickets.js'
 
 function priorityClasses(priority) {
   switch (priority) {
@@ -21,9 +16,31 @@ function priorityClasses(priority) {
   }
 }
 
+const normalize = (t) => ({
+  id: t.id?.toString() ?? t.ticket_id_pk?.toString() ?? '',
+  title: t.title || '',
+  requester: t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`,
+  priority: t.priority || 'N/A',
+  status: t.status || '',
+  statusId: t.statusId || t.status_id_fk || t.status_id_pk,
+  category: t.category || t.topic || '',
+  date: t.createdAt || t.created_at || '',
+})
+
+const normalizeWithStatus = (t) => {
+  const base = normalize(t)
+  return {
+    ...base,
+    status: t.status || (base.statusId ? ['','Abierto','En progreso','Resuelto','Cerrado'][base.statusId] : ''),
+  }
+}
+
 export default function AdminResolved() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [tickets, setTickets] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
@@ -40,16 +57,38 @@ export default function AdminResolved() {
     return () => document.removeEventListener('mousedown', handler)
   }, [showMenu])
 
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await fetchTickets()
+        setTickets(data || [])
+      } catch (err) {
+        setError(err.message || 'No se pudieron cargar los tickets')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
   const filtered = useMemo(() => {
+    const closed = (tickets || []).filter((t) => {
+      const statusId = t.statusId || t.status_id_fk || t.status_id_pk
+      return statusId === 3 || statusId === 4
+    })
     const term = search.trim().toLowerCase()
-    if (!term) return MOCK_CLOSED
-    return MOCK_CLOSED.filter((t) =>
+    if (!term) return closed.map(normalizeWithStatus)
+    return closed
+      .map(normalizeWithStatus)
+      .filter((t) =>
       t.id.toLowerCase().includes(term) ||
       t.title.toLowerCase().includes(term) ||
       t.requester.toLowerCase().includes(term) ||
       t.category.toLowerCase().includes(term)
     )
-  }, [search])
+  }, [search, tickets])
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -126,8 +165,20 @@ export default function AdminResolved() {
             </div>
           </div>
 
+          {error && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-3">
-            {filtered.map((t) => (
+            {loading && (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                Cargando tickets...
+              </div>
+            )}
+
+            {!loading && filtered.map((t) => (
               <article
                 key={t.id}
                 className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl bg-white border border-slate-200 px-4 py-3 shadow-sm hover:shadow transition cursor-pointer"
@@ -155,7 +206,7 @@ export default function AdminResolved() {
               </article>
             ))}
 
-            {filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
                 No hay tickets con ese criterio.
               </div>
