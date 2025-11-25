@@ -184,7 +184,8 @@ export default function AdminDashboard() {
                 ticketsBySelected.map((t) => (
                   <article
                     key={t.id}
-                    className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl bg-white border border-slate-200 px-4 py-3 shadow-sm hover:shadow transition"
+                    className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl bg-white border border-slate-200 px-4 py-3 shadow-sm hover:shadow transition cursor-pointer"
+                    onClick={() => navigate(`/tickets/${t.id}`)}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 text-sm">
