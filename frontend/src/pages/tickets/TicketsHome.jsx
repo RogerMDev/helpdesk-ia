@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { fetchTickets } from '../../api/tickets.js'
 import { fetchUsers } from '../../api/users.js'
+import { getStatusMeta } from '../../utils/status.js'
 
 function priorityClasses(priority) {
   switch (priority) {
@@ -17,33 +18,17 @@ function priorityClasses(priority) {
   }
 }
 
-function statusClasses(status) {
-  switch (status) {
-    case 'En Progreso':
-      return 'bg-blue-100 text-blue-700'
-    case 'Pendiente':
-      return 'bg-amber-100 text-amber-700'
-    case 'Cerrado':
-      return 'bg-emerald-100 text-emerald-700'
-    case 'Abierto':
-    default:
-      return 'bg-slate-100 text-slate-700'
-  }
+function statusLabelFromId(id) {
+  return getStatusMeta(id).label
 }
 
-function statusLabelFromId(id) {
-  switch (Number(id)) {
-    case 1:
-      return 'Abierto'
-    case 2:
-      return 'En Progreso'
-    case 3:
-      return 'Resuelto'
-    case 4:
-      return 'Cerrado'
-    default:
-      return 'Abierto'
-  }
+function priorityLabel(value) {
+  if (!value) return 'N/A'
+  const val = value.toString().toLowerCase()
+  if (val.includes('alta') || val === '1') return 'Alta'
+  if (val.includes('media') || val === '2') return 'Media'
+  if (val.includes('baja') || val === '3') return 'Baja'
+  return value
 }
 
 function formatDateTime(value) {
@@ -126,23 +111,25 @@ export default function TicketsHome() {
 
   const normalized = useMemo(() => {
     return (tickets || []).map((t) => {
-      const statusLabel = statusLabelFromId(t.statusId || t.status_id_fk || t.status_id_pk)
+      const statusMeta = getStatusMeta(t.statusId || t.status_id_fk || t.status_id_pk || t.status)
       const created = t.createdAt || t.created_at || ''
       const formattedDate = formatDateTime(created)
       const createdId = t.createdById || t.created_by_id || t.created_by_id_pk || t.created_by_fk
       const assigneeId = t.assigneeId || t.assignee_id_fk || t.assignee_id_pk
+      const priority = priorityLabel(t.priority)
       return {
         id: t.id?.toString() ?? t.ticket_id_pk?.toString() ?? '',
         title: t.title || '',
         requester: nameForUser(createdId, t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`),
         assignee: nameForUser(assigneeId, t.assignee || t.assigneeName || (t.assigneeId ? `Asignado (${t.assigneeId})` : 'Sin asignar')),
-        priority: t.priority || 'N/A',
-        status: statusLabel,
+        priority,
+        status: statusMeta.label,
+        statusClasses: statusMeta.classes,
         date: formattedDate,
         createdById: createdId || null,
       }
     })
-  }, [tickets])
+  }, [tickets, userMap])
 
   const filteredTickets = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -323,8 +310,8 @@ export default function TicketsHome() {
                   </span>
                   <span
                     className={
-                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' +
-                      statusClasses(ticket.status)
+                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border ' +
+                      ticket.statusClasses
                     }
                   >
                     {ticket.status}
