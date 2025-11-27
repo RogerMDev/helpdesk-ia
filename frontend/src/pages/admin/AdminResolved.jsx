@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { fetchTickets } from '../../api/tickets.js'
+import { fetchUsers } from '../../api/users.js'
 import { getStatusMeta } from '../../utils/status.js'
 
 function priorityClasses(priority) {
@@ -37,13 +38,14 @@ const normalizeWithStatus = (t) => {
 }
 
 export default function AdminResolved() {
-  const { user, logout } = useAuth()
+  const { user, logout, token } = useAuth()
   const navigate = useNavigate()
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [showMenu, setShowMenu] = useState(false)
+  const [userMap, setUserMap] = useState({})
   const menuRef = useRef(null)
 
   const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
@@ -63,8 +65,16 @@ export default function AdminResolved() {
       setLoading(true)
       setError('')
       try {
-        const data = await fetchTickets()
+        const [data, users] = await Promise.all([
+          fetchTickets(),
+          fetchUsers(token).catch(() => []),
+        ])
         setTickets(data || [])
+        const map = {}
+        ;(users || []).forEach((u) => {
+          if (u?.id) map[u.id.toString()] = u.name || u.email || ''
+        })
+        setUserMap(map)
       } catch (err) {
         setError(err.message || 'No se pudieron cargar los tickets')
       } finally {
@@ -74,22 +84,29 @@ export default function AdminResolved() {
     load()
   }, [])
 
+  const nameForUser = (id, fallback) => userMap[id?.toString()] || fallback
+
   const filtered = useMemo(() => {
     const closed = (tickets || []).filter((t) => {
       const statusId = t.statusId || t.status_id_fk || t.status_id_pk
       return statusId === 3 || statusId === 4
+    }).map((t) => {
+      const createdId = t.createdById || t.created_by_id || t.created_by_id_pk
+      const assigneeId = t.assigneeId || t.assignee_id_fk || t.assignee_id_pk
+      const base = normalizeWithStatus(t)
+      const requester = nameForUser(createdId, t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`)
+      const assignee = nameForUser(assigneeId, t.assignee || t.assigneeName || (assigneeId ? `Asignado (${assigneeId})` : 'Sin asignar'))
+      return { ...base, requester, assignee }
     })
     const term = search.trim().toLowerCase()
-    if (!term) return closed.map(normalizeWithStatus)
-    return closed
-      .map(normalizeWithStatus)
-      .filter((t) =>
+    if (!term) return closed
+    return closed.filter((t) =>
       t.id.toLowerCase().includes(term) ||
       t.title.toLowerCase().includes(term) ||
       t.requester.toLowerCase().includes(term) ||
       t.category.toLowerCase().includes(term)
     )
-  }, [search, tickets])
+  }, [search, tickets, userMap])
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -187,16 +204,16 @@ export default function AdminResolved() {
                   className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl bg-white border border-slate-200 px-4 py-3 shadow-sm hover:shadow transition cursor-pointer"
                   onClick={() => navigate(`/tickets/${t.id}`)}
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-blue-700 font-semibold">{t.id}</span>
-                      <span className="text-slate-400">·</span>
-                      <span className="font-medium text-slate-900 truncate">{t.title}</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {t.category} · {t.requester} · {t.date}
-                    </p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-blue-700 font-semibold">{t.id}</span>
+                    <span className="text-slate-400">·</span>
+                    <span className="font-medium text-slate-900 truncate">{t.title}</span>
                   </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {t.category} · {t.requester} · {t.assignee} · {t.date}
+                  </p>
+                </div>
                   <span
                     className={
                       'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border ' +

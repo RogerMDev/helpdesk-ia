@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { fetchTickets, updateTicketStatus } from '../../api/tickets.js'
+import { fetchUsers } from '../../api/users.js'
 import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
 
 const CATEGORY_LABELS = ['Red', 'Accesos', 'Licencias', 'Hardware', 'Software', 'Otro']
@@ -27,6 +28,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showMenu, setShowMenu] = useState(false)
+  const [userMap, setUserMap] = useState({})
   const menuRef = useRef(null)
   const [statusMenuTicketId, setStatusMenuTicketId] = useState(null)
   const [changingStatusId, setChangingStatusId] = useState(null)
@@ -59,8 +61,16 @@ export default function AdminDashboard() {
       setLoading(true)
       setError('')
       try {
-        const data = await fetchTickets()
+        const [data, users] = await Promise.all([
+          fetchTickets(),
+          fetchUsers(token).catch(() => []),
+        ])
         setTickets(data || [])
+        const map = {}
+        ;(users || []).forEach((u) => {
+          if (u?.id) map[u.id.toString()] = u.name || u.email || ''
+        })
+        setUserMap(map)
       } catch (err) {
         setError(err.message || 'No se pudieron cargar los tickets')
       } finally {
@@ -117,6 +127,8 @@ export default function AdminDashboard() {
       setChangingStatusId(null)
     }
   }
+
+  const nameForUser = (id, fallback) => userMap[id?.toString()] || fallback
 
   const formatDateTime = (value) => {
     if (!value) return ''
@@ -260,7 +272,10 @@ export default function AdminDashboard() {
                   const statusMeta = getStatusMeta(statusId || t.status)
                   const priority = t.priority || 'N/A'
                   const topic = t.category || t.topic || selectedCategory
-                  const requester = t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`
+                  const createdId = t.createdById || t.created_by_id || t.created_by_id_pk
+                  const assigneeId = t.assigneeId || t.assignee_id_fk || t.assignee_id_pk
+                  const requester = nameForUser(createdId, t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`)
+                  const assignee = nameForUser(assigneeId, t.assignee || t.assigneeName || (assigneeId ? `Asignado (${assigneeId})` : 'Sin asignar'))
                   const date = formatDateTime(t.createdAt || t.created_at || '')
                   return (
                   <article
@@ -275,6 +290,7 @@ export default function AdminDashboard() {
                         <span className="font-medium text-slate-900 truncate">{t.title}</span>
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5">Solicitado por {requester}</p>
+                      <p className="text-xs text-slate-500">Asignado a: {assignee}</p>
                       <p className="text-xs text-slate-500">Tipologia: {topic}</p>
                       <p className="text-xs text-slate-500 mt-1">Fecha: {date}</p>
                     </div>

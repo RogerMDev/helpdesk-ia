@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { fetchTickets } from '../../api/tickets.js'
+import { fetchUsers } from '../../api/users.js'
 
 function priorityClasses(priority) {
   switch (priority) {
@@ -55,13 +56,14 @@ function formatDateTime(value) {
 }
 
 export default function TicketsHome() {
-  const { user, logout, isReady, isAuthenticated } = useAuth()
+  const { user, logout, isReady, isAuthenticated, token } = useAuth()
   const navigate = useNavigate()
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [showMenu, setShowMenu] = useState(false)
+  const [userMap, setUserMap] = useState({})
   const menuRef = useRef(null)
 
   const displayName = user?.name || 'Usuario'
@@ -101,8 +103,16 @@ export default function TicketsHome() {
       setLoading(true)
       setError('')
       try {
-        const data = await fetchTickets()
+        const [data, users] = await Promise.all([
+          fetchTickets(),
+          fetchUsers(token).catch(() => []),
+        ])
         setTickets(data || [])
+        const map = {}
+        ;(users || []).forEach((u) => {
+          if (u?.id) map[u.id.toString()] = u.name || u.email || ''
+        })
+        setUserMap(map)
       } catch (err) {
         setError(err.message || 'No se pudieron cargar los tickets')
       } finally {
@@ -112,20 +122,24 @@ export default function TicketsHome() {
     load()
   }, [])
 
+  const nameForUser = (id, fallback) => userMap[id?.toString()] || fallback
+
   const normalized = useMemo(() => {
     return (tickets || []).map((t) => {
       const statusLabel = statusLabelFromId(t.statusId || t.status_id_fk || t.status_id_pk)
       const created = t.createdAt || t.created_at || ''
       const formattedDate = formatDateTime(created)
+      const createdId = t.createdById || t.created_by_id || t.created_by_id_pk || t.created_by_fk
+      const assigneeId = t.assigneeId || t.assignee_id_fk || t.assignee_id_pk
       return {
         id: t.id?.toString() ?? t.ticket_id_pk?.toString() ?? '',
         title: t.title || '',
-        requester: t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`,
-        assignee: t.assignee || t.assigneeName || (t.assigneeId ? `Asignado (${t.assigneeId})` : 'Sin asignar'),
+        requester: nameForUser(createdId, t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`),
+        assignee: nameForUser(assigneeId, t.assignee || t.assigneeName || (t.assigneeId ? `Asignado (${t.assigneeId})` : 'Sin asignar')),
         priority: t.priority || 'N/A',
         status: statusLabel,
         date: formattedDate,
-        createdById: t.createdById || t.created_by_fk || null,
+        createdById: createdId || null,
       }
     })
   }, [tickets])

@@ -1,12 +1,15 @@
 // src/api/users.js
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
+const defaultHeaders = (token) => ({
+  'Content-Type': 'application/json',
+  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+})
+
 export async function createUser(payload) {
   const res = await fetch(`${API_URL}/api/auth/register`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: defaultHeaders(),
     body: JSON.stringify(payload),
   })
 
@@ -28,9 +31,7 @@ export async function createUser(payload) {
 export async function loginUser(payload) {
   const res = await fetch(`${API_URL}/api/auth/login`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: defaultHeaders(),
     body: JSON.stringify(payload),
   })
 
@@ -46,4 +47,20 @@ export async function loginUser(payload) {
   }
 
   return res.json() // AuthResponse { token, user }
+}
+
+export async function fetchUsers(token) {
+  const res = await fetch(`${API_URL}/users`, {
+    headers: defaultHeaders(token),
+  })
+  if (!res.ok) throw new Error('No se pudieron cargar los usuarios')
+  return res.json()
+}
+
+export async function fetchUserById(id, token) {
+  const res = await fetch(`${API_URL}/users/${id}`, {
+    headers: defaultHeaders(token),
+  })
+  if (!res.ok) throw new Error('No se pudo cargar el usuario')
+  return res.json()
 }

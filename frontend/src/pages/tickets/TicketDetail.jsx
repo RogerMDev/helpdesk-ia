@@ -5,6 +5,7 @@ import Button from '../../components/ui/Button.jsx'
 import { fetchTicketById, deleteTicket, updateTicketStatus } from '../../api/tickets.js'
 import { listMessages, createMessage, deleteMessage, updateMessage } from '../../api/messages.js'
 import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
+import { fetchUserById } from '../../api/users.js'
 
 function priorityClasses(priority) {
   switch (priority) {
@@ -88,12 +89,28 @@ export default function TicketDetail() {
         if (!payload) throw new Error('Ticket no encontrado')
         const statusId = payload.statusId || payload.status_id_fk || payload.status_id_pk
         const statusMeta = getStatusMeta(statusId || payload.status)
+        const requesterId = payload.createdById || payload.created_by_id || payload.created_by_id_pk
+        const assigneeId = payload.assigneeId || payload.assignee_id_fk || payload.assignee_id_pk
+        let requesterName = payload.requester || payload.createdByName || (requesterId ? `Usuario ${requesterId}` : 'Desconocido')
+        let assigneeName = payload.assignee || payload.assigneeName || (assigneeId ? `Asignado (${assigneeId})` : 'Sin asignar')
+
+        try {
+          const [reqUser, assUser] = await Promise.all([
+            requesterId ? fetchUserById(requesterId, token).catch(() => null) : Promise.resolve(null),
+            assigneeId ? fetchUserById(assigneeId, token).catch(() => null) : Promise.resolve(null),
+          ])
+          if (reqUser?.name) requesterName = reqUser.name
+          if (assUser?.name) assigneeName = assUser.name
+        } catch {
+          // ignoramos errores y usamos los fallback
+        }
+
         setTicket({
           id: payload.id?.toString() ?? payload.ticket_id_pk?.toString() ?? id,
           title: payload.title || `Ticket ${id}`,
           description: payload.description || 'Sin descripción',
-          requester: payload.requester || payload.createdByName || `Usuario ${payload.createdById ?? ''}`,
-          assignee: payload.assignee || payload.assigneeName || (payload.assigneeId ? `Asignado (${payload.assigneeId})` : 'Sin asignar'),
+          requester: requesterName,
+          assignee: assigneeName,
           priority: payload.priority || 'N/A',
           status: statusMeta.label,
           statusId: statusMeta.id,
