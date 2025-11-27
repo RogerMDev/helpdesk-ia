@@ -2,6 +2,7 @@ package com.helpdesk.backend.controller;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,13 +42,7 @@ public class TicketController {
   public record CreateTicketDTO(Long createdById, Long assigneeId, String title, String description,
                                 String topic, Integer statusId) {}
   public record UpdateStatusDTO(Integer statusId) {}
-  public record UpdateTicketDTO(
-      Long assigneeId,     // opcional (null = no cambiar; si existe pero no se encuentra en BD -> error)
-      Integer statusId,    // opcional
-      String title,        // opcional
-      String description,  // opcional
-      String topic         // opcional
-  ) {}
+  public record UpdateAssigneeDTO(Long assigneeId) {}
   public record TicketResponseDTO(
       Long id,
       Long createdById,
@@ -130,6 +125,7 @@ public class TicketController {
 
   // ===== PATCH /tickets/{id}/status =====
   @PatchMapping("/{id}/status")
+  @Transactional
   public TicketResponseDTO updateStatus(@PathVariable Long id, @RequestBody UpdateStatusDTO dto) {
     var t = tickets.findById(id).orElseThrow();
     var status = statuses.findById(dto.statusId())
@@ -151,31 +147,66 @@ public class TicketController {
 
   // ===== PUT /tickets/{id} =====
   @PutMapping("/{id}")
-  public TicketResponseDTO update(@PathVariable Long id, @RequestBody UpdateTicketDTO dto) {
+  @Transactional
+  public TicketResponseDTO update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
     var t = tickets.findById(id)
         .orElseThrow(() -> new java.util.NoSuchElementException("Ticket no encontrado con id: " + id));
 
     // Relaciones opcionales
-    if (dto.assigneeId() != null) {
-      var assignee = users.findById(dto.assigneeId()).orElse(null); // null = desasignar
+    boolean assigneePresent = body.containsKey("assigneeId");
+    boolean statusPresent = body.containsKey("statusId");
+
+    if (assigneePresent) {
+      var assigneeId = asLong(body.get("assigneeId"));
+      var assignee = assigneeId != null ? users.findById(assigneeId).orElse(null) : null; // null = desasignar
       t.setAssignee(assignee);
     }
-    if (dto.statusId() != null) {
-      var status = statuses.findById(dto.statusId())
-          .orElseThrow(() -> new RuntimeException("statusId no existe"));
-      t.setStatus(status);
-      if (status.getName() != null && status.getName().equalsIgnoreCase("RESOLVED")) {
-        t.setClosedAt(LocalDateTime.now());
-      } else {
-        t.setClosedAt(null); // si cambias a otro estado, reabrimos
+    if (statusPresent) {
+      var statusId = asInteger(body.get("statusId"));
+      if (statusId != null) {
+        var status = statuses.findById(statusId)
+            .orElseThrow(() -> new RuntimeException("statusId no existe"));
+        t.setStatus(status);
+        if (status.getName() != null && status.getName().equalsIgnoreCase("RESOLVED")) {
+          t.setClosedAt(LocalDateTime.now());
+        } else {
+          t.setClosedAt(null); // si cambias a otro estado, reabrimos
+        }
       }
     }
 
     // Campos simples opcionales
-    if (dto.title() != null)        t.setTitle(dto.title());
-    if (dto.description() != null)  t.setDescription(dto.description());
-    if (dto.topic() != null)        t.setTopic(dto.topic());
+    if (body.containsKey("title") && body.get("title") != null)        t.setTitle(body.get("title").toString());
+    if (body.containsKey("description") && body.get("description") != null)  t.setDescription(body.get("description").toString());
+    if (body.containsKey("topic") && body.get("topic") != null)        t.setTopic(body.get("topic").toString());
 
+    t.setUpdatedAt(LocalDateTime.now());
+    var saved = tickets.save(t);
+    return toDto(saved);
+  }
+
+  private Long asLong(Object value) {
+    if (value == null) return null;
+    if (value instanceof Number n) return n.longValue();
+    return Long.parseLong(value.toString());
+  }
+
+  private Integer asInteger(Object value) {
+    if (value == null) return null;
+    if (value instanceof Number n) return n.intValue();
+    return Integer.parseInt(value.toString());
+  }
+
+  // ===== PATCH /tickets/{id}/assign =====
+  @PatchMapping("/{id}/assign")
+  @Transactional
+  public TicketResponseDTO updateAssignee(@PathVariable Long id, @RequestBody UpdateAssigneeDTO dto) {
+    var t = tickets.findById(id).orElseThrow();
+    User assignee = null;
+    if (dto.assigneeId() != null) {
+      assignee = users.findById(dto.assigneeId()).orElse(null); // null => desasignar
+    }
+    t.setAssignee(assignee);
     t.setUpdatedAt(LocalDateTime.now());
     var saved = tickets.save(t);
     return toDto(saved);

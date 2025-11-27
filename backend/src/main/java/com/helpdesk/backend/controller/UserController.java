@@ -1,5 +1,6 @@
 package com.helpdesk.backend.controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -29,18 +30,22 @@ public class UserController {
   }
 
   // DTOs
-  public record UserDTO(Long id, String name, String email, Integer roleId, String roleName) {}
+  public record UserDTO(Long id, String name, String lastName, String email, String phone,
+                       Integer roleId, String roleName, LocalDateTime createdAt) {}
   public record CreateUserDTO(Integer roleId, String name, String email, String password) {}
-  public record UpdateUserDTO(Integer roleId, String name, String email) {}
+  public record UpdateUserDTO(Integer roleId, String name, String lastName, String email, String phone) {}
 
   // Mapper
   private static UserDTO toDTO(User u) {
     return new UserDTO(
         u.getId(),
         u.getName(),
+        u.getLastName(),
         u.getEmail(),
+        u.getPhone(),
         u.getRole() != null ? u.getRole().getId() : null,
-        u.getRole() != null ? u.getRole().getName() : null
+        u.getRole() != null ? u.getRole().getName() : null,
+        u.getCreatedAt()
     );
   }
 
@@ -76,8 +81,10 @@ public class UserController {
     if (dto.roleId() != null) {
       u.setRole(roles.findById(dto.roleId()).orElseThrow());
     }
-    if (dto.name() != null)  u.setName(dto.name());
-    if (dto.email() != null) u.setEmail(dto.email());
+    if (dto.name() != null)      u.setName(dto.name());
+    if (dto.lastName() != null)  u.setLastName(dto.lastName());
+    if (dto.email() != null)     u.setEmail(dto.email());
+    if (dto.phone() != null)     u.setPhone(dto.phone());
     return toDTO(users.save(u));
   }
 

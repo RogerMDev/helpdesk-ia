@@ -65,6 +65,59 @@ export async function updateTicketStatus(id, statusId, token) {
   }
 }
 
+export async function updateTicketAssignee(id, assigneeId, token) {
+  // Intentamos el endpoint específico de asignación; si no existe o falla, usamos PUT genérico.
+  const payload = { assigneeId }
+  const tryAssign = async () => {
+    const res = await fetch(`${API_URL}/tickets/${id}/assign`, {
+      method: 'PATCH',
+      headers: defaultHeaders(token),
+      body: JSON.stringify(payload),
+    })
+    return res
+  }
+
+  let res = await tryAssign()
+  if (!res.ok && (res.status === 404 || res.status === 405)) {
+    res = await fetch(`${API_URL}/tickets/${id}`, {
+      method: 'PUT',
+      headers: defaultHeaders(token),
+      body: JSON.stringify(payload),
+    })
+  }
+
+  if (!res.ok) {
+    const message = await safeMessage(res)
+    throw new Error(message)
+  }
+  const text = await res.text()
+  if (!text) return { id, assigneeId }
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { id, assigneeId }
+  }
+}
+
+export async function updateTicket(id, payload, token) {
+  const res = await fetch(`${API_URL}/tickets/${id}`, {
+    method: 'PUT',
+    headers: defaultHeaders(token),
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const message = await safeMessage(res)
+    throw new Error(message)
+  }
+  const text = await res.text()
+  if (!text) return { id, ...payload }
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { id, ...payload }
+  }
+}
+
 export async function deleteTicket(id, token) {
   const res = await fetch(`${API_URL}/tickets/${id}`, {
     method: 'DELETE',

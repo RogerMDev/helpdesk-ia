@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
-import { fetchTicketById, deleteTicket, updateTicketStatus } from '../../api/tickets.js'
+import { fetchTicketById, deleteTicket, updateTicketStatus, updateTicketAssignee } from '../../api/tickets.js'
 import { listMessages, createMessage, deleteMessage, updateMessage } from '../../api/messages.js'
 import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
 import { fetchUserById } from '../../api/users.js'
@@ -32,6 +32,8 @@ export default function TicketDetail() {
   const [showMenu, setShowMenu] = useState(false)
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
   const [changingStatus, setChangingStatus] = useState(false)
+  const [assigning, setAssigning] = useState(false)
+  const [releasing, setReleasing] = useState(false)
   const menuRef = useRef(null)
   const statusMenuRef = useRef(null)
   const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
@@ -99,6 +101,7 @@ export default function TicketDetail() {
           description: payload.description || 'Sin descripción',
           requester: requesterName,
           assignee: assigneeName,
+          assigneeId,
           status: statusMeta.label,
           statusId: statusMeta.id,
           openedAt: payload.createdAt || payload.created_at || '',
@@ -211,6 +214,35 @@ export default function TicketDetail() {
     }
   }
 
+  const handleAssignToMe = async () => {
+    if (!isAdmin || assigning) return
+    try {
+      setAssigning(true)
+      setError('')
+      const updated = await updateTicketAssignee(id, user?.id, token)
+      const assigneeName = updated?.assigneeName || updated?.assignee || user?.name || user?.email || `Usuario ${user?.id ?? ''}`
+      setTicket((prev) => (prev ? { ...prev, assignee: assigneeName, assigneeId: user?.id } : prev))
+    } catch (err) {
+      setError(err.message || 'No se pudo asignar el ticket')
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  const handleRelease = async () => {
+    if (!isAdmin || releasing) return
+    try {
+      setReleasing(true)
+      setError('')
+      await updateTicketAssignee(id, null, token)
+      setTicket((prev) => (prev ? { ...prev, assignee: 'Sin asignar', assigneeId: null } : prev))
+    } catch (err) {
+      setError(err.message || 'No se pudo liberar el ticket')
+    } finally {
+      setReleasing(false)
+    }
+  }
+
   const handleDeleteTicket = async () => {
     if (deleting) return
     const firstConfirm = window.confirm('¿Quieres borrar este ticket?')
@@ -319,7 +351,23 @@ export default function TicketDetail() {
                     <p className="text-xs text-slate-500">{ticket.id}</p>
                     <h1 className="text-2xl font-semibold text-slate-900">{ticket.title}</h1>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
+                    {isAdmin && (!ticket.assigneeId || ticket.assigneeId === user?.id) && (
+                      <Button
+                        variant="ghost"
+                        className="px-3 py-2 text-xs border border-slate-200 text-slate-700"
+                        onClick={ticket.assigneeId ? handleRelease : handleAssignToMe}
+                        disabled={assigning || releasing}
+                      >
+                        {assigning || releasing
+                          ? ticket.assigneeId
+                            ? 'Liberando...'
+                            : 'Asignando...'
+                          : ticket.assigneeId
+                            ? 'Liberar ticket'
+                            : 'Tomar ticket'}
+                      </Button>
+                    )}
                     <div className="relative" ref={statusMenuRef}>
                       <button
                         type="button"

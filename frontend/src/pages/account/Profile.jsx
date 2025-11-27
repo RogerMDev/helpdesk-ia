@@ -1,44 +1,113 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import Input from '../../components/ui/Input.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { updateUser, fetchUserById } from '../../api/users.js'
 
 function formatDate(value) {
-  if (!value) return '01/01/2025'
+  if (!value) return ''
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
+  if (Number.isNaN(date.getTime())) return ''
   return date.toLocaleDateString('es-ES')
 }
 
 export default function Profile() {
-  const { user } = useAuth()
+  const { user, token, updateSessionUser } = useAuth()
   const navigate = useNavigate()
 
   const initialData = useMemo(
     () => ({
-      name: user?.name || 'Roger',
-      lastName: user?.lastName || 'Martinez',
-      email: user?.email || 'roger.martinez@empresa.com',
-      phone: user?.phone || '+34 600 123 456',
-      department: user?.department || 'Tecnologia',
-      role: user?.role || 'Usuario',
+      name: user?.name || '',
+      lastName: user?.lastName || user?.last_name || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      roleId:
+        user?.roleId ??
+        user?.user_roles_id_fk ??
+        user?.user_role_id_pk ??
+        user?.role ??
+        user?.user_role,
       createdAt: formatDate(user?.createdAt || user?.created_at),
     }),
     [user]
   )
 
   const [form, setForm] = useState(initialData)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [loadingProfile, setLoadingProfile] = useState(false)
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user?.id || !token) return
+      setLoadingProfile(true)
+      try {
+        const data = await fetchUserById(user.id, token)
+        const rawCreatedAt = data.createdAt || data.created_at || user?.createdAt || user?.created_at || null
+        const next = {
+          name: data.name || '',
+          lastName: data.lastName || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          roleId: data.roleId ?? data.role_id ?? data.role_id_pk ?? initialData.roleId,
+          createdAt: formatDate(rawCreatedAt),
+        }
+        setForm(next)
+      } catch (err) {
+        setError(err.message || 'No se pudo cargar el perfil')
+      } finally {
+        setLoadingProfile(false)
+      }
+    }
+    loadProfile()
+  }, [user?.id, token, initialData.roleId, initialData.createdAt])
+
+  useEffect(() => {
+    setForm(initialData)
+  }, [initialData])
 
   const onChange = (e) => {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
-    // Guardado pendiente de API real
+    setError('')
+    if (!user?.id) {
+      setError('No hay usuario en sesión')
+      return
+    }
+    try {
+      setSaving(true)
+      const payload = {
+        name: form.name.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+      }
+      const updated = await updateUser(user.id, payload, token)
+      updateSessionUser({
+        name: updated.name,
+        lastName: updated.lastName,
+        email: updated.email,
+        phone: updated.phone,
+        roleId: updated.roleId ?? updated.role_id ?? updated.role_id_pk ?? form.roleId,
+        createdAt: updated.createdAt || updated.created_at || user?.createdAt || user?.created_at,
+      })
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar el perfil')
+    } finally {
+      setSaving(false)
+    }
   }
+
+  const roleLabel = useMemo(() => {
+    const roleVal = form.roleId?.toString() || ''
+    if (roleVal === '1' || (user?.roleName || '').toLowerCase() === 'admin') return 'Admin'
+    return 'User'
+  }, [form.roleId, user?.roleName])
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -79,13 +148,17 @@ export default function Profile() {
             </div>
 
             <form onSubmit={onSubmit} className="mt-8 space-y-6">
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {error}
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input label="Nombre" name="name" value={form.name} onChange={onChange} />
                 <Input label="Apellidos" name="lastName" value={form.lastName} onChange={onChange} />
                 <Input label="Email" name="email" type="email" value={form.email} onChange={onChange} />
                 <Input label="Telefono" name="phone" value={form.phone} onChange={onChange} />
-                <Input label="Departamento" name="department" value={form.department} onChange={onChange} />
-                <Input label="Rol" name="role" value={form.role} onChange={onChange} />
+                <Input label="Rol" name="role" value={roleLabel} disabled />
                 <Input
                   label="Fecha de registro"
                   name="createdAt"
@@ -106,8 +179,8 @@ export default function Profile() {
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1">
-                  Guardar cambios
+                <Button type="submit" className="flex-1" disabled={saving}>
+                  {saving ? 'Guardando...' : 'Guardar cambios'}
                 </Button>
               </div>
             </form>

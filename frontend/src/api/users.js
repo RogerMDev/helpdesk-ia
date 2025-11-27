@@ -64,3 +64,22 @@ export async function fetchUserById(id, token) {
   if (!res.ok) throw new Error('No se pudo cargar el usuario')
   return res.json()
 }
+
+export async function updateUser(id, payload, token) {
+  const res = await fetch(`${API_URL}/users/${id}`, {
+    method: 'PUT',
+    headers: defaultHeaders(token),
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    let message = 'No se pudo actualizar el usuario'
+    try {
+      const data = await res.json()
+      if (data?.message) message = data.message
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message)
+  }
+  return res.json()
+}

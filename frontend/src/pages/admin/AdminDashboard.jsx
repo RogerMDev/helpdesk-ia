@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { fetchTickets, updateTicketStatus } from '../../api/tickets.js'
+import { fetchTickets, updateTicketStatus, updateTicketAssignee, updateTicket } from '../../api/tickets.js'
 import { fetchUsers } from '../../api/users.js'
 import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
 
@@ -17,9 +17,12 @@ export default function AdminDashboard() {
   const [error, setError] = useState('')
   const [showMenu, setShowMenu] = useState(false)
   const [userMap, setUserMap] = useState({})
+  const [showAssignedOnly, setShowAssignedOnly] = useState(false)
   const menuRef = useRef(null)
   const [statusMenuTicketId, setStatusMenuTicketId] = useState(null)
   const [changingStatusId, setChangingStatusId] = useState(null)
+  const [assigningId, setAssigningId] = useState(null)
+  const [releasingId, setReleasingId] = useState(null)
   const statusMenuRef = useRef(null)
 
   const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
@@ -71,9 +74,11 @@ export default function AdminDashboard() {
   const openTickets = useMemo(
     () => (tickets || []).filter((t) => {
       const statusId = t.statusId || t.status_id_fk || t.status_id_pk
-      return statusId !== 3 && statusId !== 4
+      const isAssignedToMe =
+        (t.assigneeId || t.assignee_id_fk || t.assignee_id_pk)?.toString() === (user?.id?.toString() || '')
+      return statusId !== 3 && statusId !== 4 && (!showAssignedOnly || isAssignedToMe)
     }),
-    [tickets]
+    [tickets, showAssignedOnly, user?.id]
   )
 
   const countsByCategory = useMemo(() => {
@@ -113,6 +118,47 @@ export default function AdminDashboard() {
     } finally {
       setStatusMenuTicketId(null)
       setChangingStatusId(null)
+    }
+  }
+
+  const handleAssignToMe = async (ticketId) => {
+    if (!ticketId || assigningId) return
+    try {
+      setAssigningId(ticketId)
+      setError('')
+      const updated = await updateTicketAssignee(ticketId, user?.id, token)
+      const assigneeName =
+        updated?.assigneeName || updated?.assignee || user?.name || user?.email || `Usuario ${user?.id ?? ''}`
+      setTickets((prev) =>
+        (prev || []).map((t) =>
+          (t.id?.toString() ?? t.ticket_id_pk?.toString()) === ticketId.toString()
+            ? { ...t, assignee: assigneeName, assigneeId: user?.id }
+            : t
+        )
+      )
+    } catch (err) {
+      setError(err.message || 'No se pudo asignar el ticket')
+    } finally {
+      setAssigningId(null)
+    }
+  }
+
+  const handleRelease = async (ticketId) => {
+    if (!ticketId || releasingId) return
+    try {
+      setReleasingId(ticketId)
+      setError('')
+      const updated = await updateTicketAssignee(ticketId, null, token)
+      const isSame = (tId) => (tId?.toString() ?? '') === ticketId.toString()
+      setTickets((prev) =>
+        (prev || []).map((t) =>
+          isSame(t.id) ? { ...t, assignee: 'Sin asignar', assigneeId: null } : t
+        )
+      )
+    } catch (err) {
+      setError(err.message || 'No se pudo liberar el ticket')
+    } finally {
+      setReleasingId(null)
     }
   }
 
@@ -239,9 +285,23 @@ export default function AdminDashboard() {
                 <h3 className="text-sm font-semibold text-slate-700">
                   Tickets en {selectedCategory} (no cerrados)
                 </h3>
-                <span className="text-xs text-slate-500">
-                  {ticketsBySelected.length} resultado(s)
-                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAssignedOnly((v) => !v)}
+                    className={
+                      'rounded-lg border px-3 py-1.5 text-xs font-semibold transition ' +
+                      (showAssignedOnly
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')
+                    }
+                  >
+                    Mostrar asignados a mí
+                  </button>
+                  <span className="text-xs text-slate-500">
+                    {ticketsBySelected.length} resultado(s)
+                  </span>
+                </div>
               </div>
 
               {loading && (
@@ -323,6 +383,34 @@ export default function AdminDashboard() {
                           </div>
                         )}
                       </div>
+                      {!t.assigneeId && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="px-3 py-2 text-xs border border-slate-200 text-slate-700"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAssignToMe(t.id)
+                          }}
+                          disabled={assigningId === t.id}
+                        >
+                          {assigningId === t.id ? 'Asignando...' : 'Tomar ticket'}
+                        </Button>
+                      )}
+                      {t.assigneeId && t.assigneeId.toString() === (user?.id?.toString() || '') && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="px-3 py-2 text-xs border border-slate-200 text-rose-700"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRelease(t.id)
+                          }}
+                          disabled={releasingId === t.id}
+                        >
+                          {releasingId === t.id ? 'Liberando...' : 'Liberar ticket'}
+                        </Button>
+                      )}
                     </div>
                   </article>
                   )
