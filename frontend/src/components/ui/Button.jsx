@@ -2,7 +2,8 @@ export default function Button({ children, variant="primary", className="", ...p
   const base = "rounded-xl px-5 py-3 text-sm font-semibold transition disabled:opacity-50";
   const styles = {
     primary: "bg-blue-600 text-white hover:bg-blue-700",
-    ghost:   "bg-white border border-gray-300 hover:bg-gray-50"
+    ghost:   "bg-white border border-gray-300 hover:bg-gray-50",
+    danger:  "bg-rose-600 text-white hover:bg-rose-700"
   };
   return <button className={`${base} ${styles[variant]} ${className}`} {...props}>{children}</button>;
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { fetchTickets } from '../../api/tickets.js'
+import { getStatusMeta } from '../../utils/status.js'
 
 function priorityClasses(priority) {
   switch (priority) {
@@ -178,33 +179,44 @@ export default function AdminResolved() {
               </div>
             )}
 
-            {!loading && filtered.map((t) => (
-              <article
-                key={t.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl bg-white border border-slate-200 px-4 py-3 shadow-sm hover:shadow transition cursor-pointer"
-                onClick={() => navigate(`/tickets/${t.id}`)}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-blue-700 font-semibold">{t.id}</span>
-                    <span className="text-slate-400">·</span>
-                    <span className="font-medium text-slate-900 truncate">{t.title}</span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {t.category} · {t.requester} · {t.date}
-                  </p>
-                </div>
-                <span className="text-xs text-slate-500">{t.status}</span>
-                <span
-                  className={
-                    'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ' +
-                    priorityClasses(t.priority)
-                  }
+            {!loading && filtered.map((t) => {
+              const statusMeta = getStatusMeta(t.statusId || t.status)
+              return (
+                <article
+                  key={t.id}
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl bg-white border border-slate-200 px-4 py-3 shadow-sm hover:shadow transition cursor-pointer"
+                  onClick={() => navigate(`/tickets/${t.id}`)}
                 >
-                  {t.priority}
-                </span>
-              </article>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-blue-700 font-semibold">{t.id}</span>
+                      <span className="text-slate-400">·</span>
+                      <span className="font-medium text-slate-900 truncate">{t.title}</span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {t.category} · {t.requester} · {t.date}
+                    </p>
+                  </div>
+                  <span
+                    className={
+                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border ' +
+                      statusMeta.classes
+                    }
+                  >
+                    {statusMeta.label}
+                  </span>
+                  <span
+                    className={
+                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ' +
+                      priorityClasses(t.priority)
+                    }
+                  >
+                    {t.priority}
+                  </span>
+                </article>
+              )
+            })}
+
 
             {!loading && filtered.length === 0 && (
               <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">

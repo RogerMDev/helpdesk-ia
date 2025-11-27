@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { fetchTickets } from '../../api/tickets.js'
+import { fetchTickets, updateTicketStatus } from '../../api/tickets.js'
+import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
 
 const CATEGORY_LABELS = ['Red', 'Accesos', 'Licencias', 'Hardware', 'Software', 'Otro']
 
@@ -18,30 +19,18 @@ function priorityClasses(priority) {
   }
 }
 
-function statusLabelFromId(id) {
-  switch (Number(id)) {
-    case 1:
-      return 'Abierto'
-    case 2:
-      return 'En progreso'
-    case 3:
-      return 'Resuelto'
-    case 4:
-      return 'Cerrado'
-    default:
-      return 'Abierto'
-  }
-}
-
 export default function AdminDashboard() {
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, logout, token } = useAuth()
   const [selectedCategory, setSelectedCategory] = useState(CATEGORY_LABELS[0])
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
+  const [statusMenuTicketId, setStatusMenuTicketId] = useState(null)
+  const [changingStatusId, setChangingStatusId] = useState(null)
+  const statusMenuRef = useRef(null)
 
   const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
@@ -54,6 +43,16 @@ export default function AdminDashboard() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showMenu])
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (statusMenuTicketId && statusMenuRef.current && !statusMenuRef.current.contains(e.target)) {
+        setStatusMenuTicketId(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [statusMenuTicketId])
 
   useEffect(() => {
     const load = async () => {
@@ -97,6 +96,27 @@ export default function AdminDashboard() {
     }),
     [openTickets, selectedCategory]
   )
+
+  const handleChangeStatus = async (ticketId, statusId) => {
+    if (!ticketId || !statusId || changingStatusId) return
+    try {
+      setChangingStatusId(ticketId)
+      const updated = await updateTicketStatus(ticketId, statusId, token)
+      const meta = getStatusMeta(updated?.statusId ?? statusId ?? updated?.status)
+      setTickets((prev) =>
+        (prev || []).map((t) =>
+          (t.id?.toString() ?? t.ticket_id_pk?.toString()) === ticketId.toString()
+            ? { ...t, statusId: meta.id, status: meta.label }
+            : t
+        )
+      )
+    } catch (err) {
+      setError(err.message || 'No se pudo actualizar el estado')
+    } finally {
+      setStatusMenuTicketId(null)
+      setChangingStatusId(null)
+    }
+  }
 
   const formatDateTime = (value) => {
     if (!value) return ''
@@ -237,7 +257,7 @@ export default function AdminDashboard() {
               ) : (
                 ticketsBySelected.map((t) => {
                   const statusId = t.statusId || t.status_id_fk || t.status_id_pk
-                  const statusLabel = statusLabelFromId(statusId)
+                  const statusMeta = getStatusMeta(statusId || t.status)
                   const priority = t.priority || 'N/A'
                   const topic = t.category || t.topic || selectedCategory
                   const requester = t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`
@@ -267,7 +287,47 @@ export default function AdminDashboard() {
                       >
                         {priority}
                       </span>
-                      <span className="text-xs text-slate-500">{statusLabel}</span>
+                      <div className="relative" ref={statusMenuTicketId === t.id ? statusMenuRef : undefined}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setStatusMenuTicketId((curr) => (curr === t.id ? null : t.id))
+                          }}
+                          disabled={Boolean(changingStatusId)}
+                          className={
+                            'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border transition hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 ' +
+                            statusMeta.classes
+                          }
+                        >
+                          {statusMeta.label} <span className="ml-1 text-[10px]">▾</span>
+                        </button>
+                        {statusMenuTicketId === t.id && (
+                          <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white shadow-lg py-1 z-10">
+                            {STATUS_OPTIONS.map((opt) => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleChangeStatus(t.id, opt.id)
+                                }}
+                                disabled={changingStatusId === t.id}
+                                className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 ${opt.id === statusMeta.id ? 'bg-slate-50' : ''}`}
+                              >
+                                <span
+                                  className={
+                                    'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border leading-none ' +
+                                    opt.classes
+                                  }
+                                >
+                                  {opt.label}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </article>
                   )

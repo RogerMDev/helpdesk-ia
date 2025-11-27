@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
-import { fetchTicketById } from '../../api/tickets.js'
-import { listMessages, createMessage, deleteMessage } from '../../api/messages.js'
+import { fetchTicketById, deleteTicket, updateTicketStatus } from '../../api/tickets.js'
+import { listMessages, createMessage, deleteMessage, updateMessage } from '../../api/messages.js'
+import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
 
 function priorityClasses(priority) {
   switch (priority) {
@@ -14,21 +15,6 @@ function priorityClasses(priority) {
     case 'Baja':
     default:
       return 'bg-slate-100 text-slate-700'
-  }
-}
-
-function statusLabelFromId(id) {
-  switch (Number(id)) {
-    case 1:
-      return 'Abierto'
-    case 2:
-      return 'En Progreso'
-    case 3:
-      return 'Resuelto'
-    case 4:
-      return 'Cerrado'
-    default:
-      return 'Abierto'
   }
 }
 
@@ -47,11 +33,18 @@ export default function TicketDetail() {
   const { user, logout, token } = useAuth()
   const [ticket, setTicket] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([])
+  const [editingId, setEditingId] = useState(null)
+  const [editText, setEditText] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false)
+  const [changingStatus, setChangingStatus] = useState(false)
   const menuRef = useRef(null)
+  const statusMenuRef = useRef(null)
   const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
   const roleId =
@@ -73,6 +66,16 @@ export default function TicketDetail() {
   }, [showMenu])
 
   useEffect(() => {
+    const handler = (e) => {
+      if (statusMenuOpen && statusMenuRef.current && !statusMenuRef.current.contains(e.target)) {
+        setStatusMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [statusMenuOpen])
+
+  useEffect(() => {
     const load = async () => {
       setLoading(true)
       setError('')
@@ -83,7 +86,8 @@ export default function TicketDetail() {
         ])
         const payload = Array.isArray(data) ? data[0] : data
         if (!payload) throw new Error('Ticket no encontrado')
-        const statusLabel = statusLabelFromId(payload.statusId || payload.status_id_fk || payload.status_id_pk)
+        const statusId = payload.statusId || payload.status_id_fk || payload.status_id_pk
+        const statusMeta = getStatusMeta(statusId || payload.status)
         setTicket({
           id: payload.id?.toString() ?? payload.ticket_id_pk?.toString() ?? id,
           title: payload.title || `Ticket ${id}`,
@@ -91,7 +95,8 @@ export default function TicketDetail() {
           requester: payload.requester || payload.createdByName || `Usuario ${payload.createdById ?? ''}`,
           assignee: payload.assignee || payload.assigneeName || (payload.assigneeId ? `Asignado (${payload.assigneeId})` : 'Sin asignar'),
           priority: payload.priority || 'N/A',
-          status: statusLabel,
+          status: statusMeta.label,
+          statusId: statusMeta.id,
           openedAt: payload.createdAt || payload.created_at || '',
           category: payload.topic || payload.category || '',
         })
@@ -145,6 +150,83 @@ export default function TicketDetail() {
       setError(err.message || 'No se pudo borrar el mensaje')
     }
   }
+
+  const handleStartEdit = (message) => {
+    setError('')
+    setEditingId(message.id)
+    setEditText(message.content)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setEditText('')
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingId || !editText.trim()) return
+    try {
+      setSavingEdit(true)
+      setError('')
+      const updated = await updateMessage(editingId, { content: editText.trim() }, token)
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === editingId ? { ...m, content: updated?.content ?? editText.trim() } : m
+        )
+      )
+      setEditingId(null)
+      setEditText('')
+    } catch (err) {
+      setError(err.message || 'No se pudo actualizar el mensaje')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+
+  const handleChangeStatus = async (statusId) => {
+    if (changingStatus || !statusId) return
+    try {
+      setChangingStatus(true)
+      setError('')
+      const updated = await updateTicketStatus(id, statusId, token)
+      const meta = getStatusMeta(updated?.statusId ?? statusId ?? updated?.status)
+      setTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: meta.label,
+              statusId: meta.id,
+            }
+          : prev
+      )
+    } catch (err) {
+      setError(err.message || 'No se pudo actualizar el estado')
+    } finally {
+      setStatusMenuOpen(false)
+      setChangingStatus(false)
+    }
+  }
+
+  const handleDeleteTicket = async () => {
+    if (deleting) return
+    const firstConfirm = window.confirm('¿Quieres borrar este ticket?')
+    if (!firstConfirm) return
+    const secondConfirm = window.confirm('Esta acción eliminará el ticket y todos sus mensajes de forma permanente. ¿Confirmas?')
+    if (!secondConfirm) return
+
+    try {
+      setError('')
+      setDeleting(true)
+      await deleteTicket(id, token)
+      navigate('/tickets')
+    } catch (err) {
+      setError(err.message || 'No se pudo borrar el ticket')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const statusMeta = ticket ? getStatusMeta(ticket.statusId || ticket.status) : null
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -242,7 +324,44 @@ export default function TicketDetail() {
                     >
                       Prioridad {ticket.priority}
                     </span>
-                    <span className="text-xs text-slate-500">Estado: {ticket.status}</span>
+                    <div className="relative" ref={statusMenuRef}>
+                      <button
+                        type="button"
+                        disabled={!isAdmin || changingStatus}
+                        onClick={() => isAdmin && setStatusMenuOpen((v) => !v)}
+                        className={
+                          'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border transition ' +
+                          (statusMeta?.classes || '') +
+                          (isAdmin ? ' hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500' : '')
+                        }
+                        title={isAdmin ? 'Cambiar estado' : undefined}
+                      >
+                        <span>Estado: {statusMeta?.label}</span>
+                        {isAdmin && <span className="ml-1 text-[10px]">▾</span>}
+                      </button>
+                      {isAdmin && statusMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white shadow-lg py-1 z-10">
+                          {STATUS_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => handleChangeStatus(opt.id)}
+                              disabled={changingStatus}
+                              className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 ${opt.id === ticket.statusId ? 'bg-slate-50' : ''}`}
+                            >
+                              <span
+                                className={
+                                  'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border leading-none ' +
+                                  opt.classes
+                                }
+                              >
+                                {opt.label}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -265,9 +384,19 @@ export default function TicketDetail() {
                   </div>
                 </div>
 
-                <div>
-                  <p className="font-semibold text-slate-900">Descripción</p>
-                  <p className="text-sm text-slate-700 mt-1">{ticket.description}</p>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-slate-900">Descripción</p>
+                    <p className="text-sm text-slate-700 mt-1">{ticket.description}</p>
+                  </div>
+                  <Button
+                    variant="danger"
+                    onClick={handleDeleteTicket}
+                    disabled={deleting}
+                    className="self-start px-4 py-2 text-sm font-semibold border border-rose-700/60"
+                  >
+                    {deleting ? 'Borrando...' : 'Borrar ticket'}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -291,17 +420,54 @@ export default function TicketDetail() {
                     </span>
                     <span>{formatDateTime(m.createdAt) || 'Sin fecha'}</span>
                   </div>
-                  <p className="text-sm text-slate-800 mt-1">{m.content}</p>
-                  {(m.userId === user?.id || isAdmin) && (
-                    <div className="flex justify-end mt-2">
-                      <button
-                        type="button"
-                        className="text-xs text-rose-600 hover:text-rose-700 font-semibold"
-                        onClick={() => handleDelete(m.id)}
-                      >
-                        Borrar mensaje
-                      </button>
+                  {editingId === m.id ? (
+                    <div className="space-y-2 mt-2">
+                      <textarea
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        rows={3}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                          onClick={handleCancelEdit}
+                          disabled={savingEdit}
+                        >
+                          Cancelar
+                        </button>
+                        <Button
+                          onClick={handleSaveEdit}
+                          disabled={!editText.trim() || savingEdit}
+                          className="px-4 py-2 text-xs"
+                        >
+                          {savingEdit ? 'Guardando...' : 'Guardar'}
+                        </Button>
+                      </div>
                     </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-slate-800 mt-1">{m.content}</p>
+                      {(m.userId === user?.id || isAdmin) && (
+                        <div className="flex justify-end mt-2 gap-3">
+                          <button
+                            type="button"
+                            className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+                            onClick={() => handleStartEdit(m)}
+                          >
+                            Editar mensaje
+                          </button>
+                          <button
+                            type="button"
+                            className="text-xs text-rose-600 hover:text-rose-700 font-semibold"
+                            onClick={() => handleDelete(m.id)}
+                          >
+                            Borrar mensaje
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               ))}

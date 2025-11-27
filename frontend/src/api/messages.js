@@ -38,6 +38,24 @@ export async function deleteMessage(id, token) {
   return true
 }
 
+export async function updateMessage(id, { content }, token) {
+  const res = await fetch(`${API_URL}/messages/${id}`, {
+    method: 'PUT',
+    headers: defaultHeaders(token),
+    body: JSON.stringify({ content }),
+  })
+  if (!res.ok) {
+    throw new Error(await safeMessage(res))
+  }
+  const text = await res.text()
+  if (!text) return { id, content }
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { id, content }
+  }
+}
+
 async function safeMessage(res) {
   try {
     const data = await res.json()

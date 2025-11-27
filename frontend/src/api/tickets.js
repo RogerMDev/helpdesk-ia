@@ -46,6 +46,43 @@ export async function createTicket(payload, token) {
   return res.json()
 }
 
+export async function updateTicketStatus(id, statusId, token) {
+  const res = await fetch(`${API_URL}/tickets/${id}/status`, {
+    method: 'PATCH',
+    headers: defaultHeaders(token),
+    body: JSON.stringify({ statusId }),
+  })
+  if (!res.ok) {
+    const message = await safeMessage(res)
+    throw new Error(message)
+  }
+  const text = await res.text()
+  if (!text) return { id, statusId }
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { id, statusId }
+  }
+}
+
+export async function deleteTicket(id, token) {
+  const res = await fetch(`${API_URL}/tickets/${id}`, {
+    method: 'DELETE',
+    headers: defaultHeaders(token),
+  })
+  if (!res.ok) {
+    const message = await safeMessage(res)
+    throw new Error(message)
+  }
+  const text = await res.text()
+  if (!text) return { success: true }
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { success: true }
+  }
+}
+
 async function safeMessage(res) {
   try {
     const data = await res.json()
