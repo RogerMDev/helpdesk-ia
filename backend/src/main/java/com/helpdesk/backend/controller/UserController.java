@@ -69,8 +69,11 @@ public class UserController {
     User u = new User();
     u.setRole(role);
     u.setName(dto.name());
+    u.setLastName(""); // opcional: sin apellidos al crear
+    u.setPhone("");
     u.setEmail(dto.email());
     u.setPassword(dto.password()); 
+    u.setCreatedAt(LocalDateTime.now());
     return toDTO(users.save(u));
   }
 

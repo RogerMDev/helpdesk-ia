@@ -62,6 +62,7 @@ public class AuthController {
     UserRoles defaultRoleRef = em.getReference(UserRoles.class, DEFAULT_ROLE_ID);
     u.setRole(defaultRoleRef);
 
+    u.setCreatedAt(java.time.LocalDateTime.now());
     User saved = userRepository.save(u);
 
     UserResponse out = new UserResponse(
@@ -70,7 +71,8 @@ public class AuthController {
         saved.getName(),
         saved.getLastName(),
         saved.getEmail(),
-        saved.getPhone()
+        saved.getPhone(),
+        saved.getCreatedAt()
     );
     return ResponseEntity.status(HttpStatus.CREATED).body(out);
   }
@@ -91,7 +93,8 @@ public class AuthController {
             u.getName(),
             u.getLastName(),
             u.getEmail(),
-            u.getPhone()
+            u.getPhone(),
+            u.getCreatedAt()
         )
     );
     return ResponseEntity.ok(resp);

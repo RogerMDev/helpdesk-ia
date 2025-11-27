@@ -1,5 +1,7 @@
 package com.helpdesk.backend.dto;
 
+import java.time.LocalDateTime;
+
 public class UserResponse {
   private Long id;
   private Integer roleId;
@@ -7,16 +9,18 @@ public class UserResponse {
   private String lastName;
   private String email;
   private String phone;
+  private LocalDateTime createdAt;
 
   public UserResponse() {}
 
-  public UserResponse(Long id, Integer roleId, String name, String lastName, String email, String phone) {
+  public UserResponse(Long id, Integer roleId, String name, String lastName, String email, String phone, LocalDateTime createdAt) {
     this.id = id;
     this.roleId = roleId;
     this.name = name;
     this.lastName = lastName;
     this.email = email;
     this.phone = phone;
+    this.createdAt = createdAt;
   }
 
   public Long getId() { return id; }
@@ -36,4 +40,7 @@ public class UserResponse {
 
   public String getPhone() { return phone; }
   public void setPhone(String phone) { this.phone = phone; }
+
+  public LocalDateTime getCreatedAt() { return createdAt; }
+  public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
