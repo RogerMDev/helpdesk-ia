@@ -7,18 +7,6 @@ import { listMessages, createMessage, deleteMessage, updateMessage } from '../..
 import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
 import { fetchUserById } from '../../api/users.js'
 
-function priorityClasses(priority) {
-  switch (priority) {
-    case 'Alta':
-      return 'bg-rose-100 text-rose-700'
-    case 'Media':
-      return 'bg-amber-100 text-amber-700'
-    case 'Baja':
-    default:
-      return 'bg-slate-100 text-slate-700'
-  }
-}
-
 function formatDateTime(value) {
   if (!value) return ''
   const date = new Date(value)
@@ -111,7 +99,6 @@ export default function TicketDetail() {
           description: payload.description || 'Sin descripción',
           requester: requesterName,
           assignee: assigneeName,
-          priority: payload.priority || 'N/A',
           status: statusMeta.label,
           statusId: statusMeta.id,
           openedAt: payload.createdAt || payload.created_at || '',
@@ -333,14 +320,6 @@ export default function TicketDetail() {
                     <h1 className="text-2xl font-semibold text-slate-900">{ticket.title}</h1>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span
-                      className={
-                        'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border ' +
-                        priorityClasses(ticket.priority)
-                      }
-                    >
-                      Prioridad {ticket.priority}
-                    </span>
                     <div className="relative" ref={statusMenuRef}>
                       <button
                         type="button"

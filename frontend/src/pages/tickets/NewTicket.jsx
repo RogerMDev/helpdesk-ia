@@ -5,7 +5,6 @@ import Input from '../../components/ui/Input.jsx'
 import { createTicket } from '../../api/tickets.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 
-const PRIORITIES = ['Baja', 'Media', 'Alta']
 const CATEGORIES = ['Red', 'Accesos', 'Licencias', 'Hardware', 'Software', 'Otro']
 
 export default function NewTicket() {
@@ -13,7 +12,6 @@ export default function NewTicket() {
   const { user } = useAuth()
   const [form, setForm] = useState({
     category: '',
-    priority: '',
     title: '',
     description: '',
     file: null,
@@ -38,15 +36,18 @@ export default function NewTicket() {
   const onSubmit = (e) => {
     e.preventDefault()
     setError('')
+    if (!form.title.trim() || !form.category) {
+      setError('Completa título y tipología para crear el ticket.')
+      return
+    }
     setLoading(true)
     const payload = {
       createdById: user?.id,
       assigneeId: null,
       statusId: 1,
-      title: form.title,
+      title: form.title.trim(),
       description: form.description,
       topic: form.category,
-      priority: form.priority,
     }
     createTicket(payload)
       .then(() => navigate('/tickets'))
@@ -94,6 +95,7 @@ export default function NewTicket() {
                   label="Tipologia"
                   name="category"
                   as="select"
+                  required
                   value={form.category}
                   onChange={onChange}
                   placeholder="Seleccionar tipologia"
@@ -106,27 +108,13 @@ export default function NewTicket() {
                   ))}
                 </Input>
 
-                <Input
-                  label="Prioridad"
-                  name="priority"
-                  as="select"
-                  value={form.priority}
-                  onChange={onChange}
-                  placeholder="Seleccionar prioridad"
-                >
-                  <option value="">Seleccionar prioridad</option>
-                  {PRIORITIES.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </Input>
               </div>
 
               <Input
                 label="Titulo del ticket"
                 name="title"
                 placeholder="Breve descripcion del problema"
+                required
                 value={form.title}
                 onChange={onChange}
               />

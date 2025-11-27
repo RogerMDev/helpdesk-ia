@@ -6,29 +6,8 @@ import { fetchTickets } from '../../api/tickets.js'
 import { fetchUsers } from '../../api/users.js'
 import { getStatusMeta } from '../../utils/status.js'
 
-function priorityClasses(priority) {
-  switch (priority) {
-    case 'Alta':
-      return 'bg-rose-100 text-rose-700'
-    case 'Media':
-      return 'bg-amber-100 text-amber-700'
-    case 'Baja':
-    default:
-      return 'bg-slate-100 text-slate-700'
-  }
-}
-
 function statusLabelFromId(id) {
   return getStatusMeta(id).label
-}
-
-function priorityLabel(value) {
-  if (!value) return 'N/A'
-  const val = value.toString().toLowerCase()
-  if (val.includes('alta') || val === '1') return 'Alta'
-  if (val.includes('media') || val === '2') return 'Media'
-  if (val.includes('baja') || val === '3') return 'Baja'
-  return value
 }
 
 function formatDateTime(value) {
@@ -116,13 +95,11 @@ export default function TicketsHome() {
       const formattedDate = formatDateTime(created)
       const createdId = t.createdById || t.created_by_id || t.created_by_id_pk || t.created_by_fk
       const assigneeId = t.assigneeId || t.assignee_id_fk || t.assignee_id_pk
-      const priority = priorityLabel(t.priority)
       return {
         id: t.id?.toString() ?? t.ticket_id_pk?.toString() ?? '',
         title: t.title || '',
         requester: nameForUser(createdId, t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`),
         assignee: nameForUser(assigneeId, t.assignee || t.assigneeName || (t.assigneeId ? `Asignado (${t.assigneeId})` : 'Sin asignar')),
-        priority,
         status: statusMeta.label,
         statusClasses: statusMeta.classes,
         date: formattedDate,
@@ -300,14 +277,6 @@ export default function TicketsHome() {
                 </div>
 
                 <div className="flex items-center gap-3 sm:pl-3">
-                  <span
-                    className={
-                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' +
-                      priorityClasses(ticket.priority)
-                    }
-                  >
-                    {ticket.priority}
-                  </span>
                   <span
                     className={
                       'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border ' +

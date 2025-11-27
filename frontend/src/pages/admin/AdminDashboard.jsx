@@ -8,18 +8,6 @@ import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
 
 const CATEGORY_LABELS = ['Red', 'Accesos', 'Licencias', 'Hardware', 'Software', 'Otro']
 
-function priorityClasses(priority) {
-  switch (priority) {
-    case 'Alta':
-      return 'bg-rose-100 text-rose-700'
-    case 'Media':
-      return 'bg-amber-100 text-amber-700'
-    case 'Baja':
-    default:
-      return 'bg-slate-100 text-slate-700'
-  }
-}
-
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const { user, logout, token } = useAuth()
@@ -270,7 +258,6 @@ export default function AdminDashboard() {
                 ticketsBySelected.map((t) => {
                   const statusId = t.statusId || t.status_id_fk || t.status_id_pk
                   const statusMeta = getStatusMeta(statusId || t.status)
-                  const priority = t.priority || 'N/A'
                   const topic = t.category || t.topic || selectedCategory
                   const createdId = t.createdById || t.created_by_id || t.created_by_id_pk
                   const assigneeId = t.assigneeId || t.assignee_id_fk || t.assignee_id_pk
@@ -295,14 +282,6 @@ export default function AdminDashboard() {
                       <p className="text-xs text-slate-500 mt-1">Fecha: {date}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span
-                        className={
-                          'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ' +
-                          priorityClasses(priority)
-                        }
-                      >
-                        {priority}
-                      </span>
                       <div className="relative" ref={statusMenuTicketId === t.id ? statusMenuRef : undefined}>
                         <button
                           type="button"

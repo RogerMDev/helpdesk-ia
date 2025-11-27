@@ -6,23 +6,10 @@ import { fetchTickets } from '../../api/tickets.js'
 import { fetchUsers } from '../../api/users.js'
 import { getStatusMeta } from '../../utils/status.js'
 
-function priorityClasses(priority) {
-  switch (priority) {
-    case 'Alta':
-      return 'bg-rose-100 text-rose-700'
-    case 'Media':
-      return 'bg-amber-100 text-amber-700'
-    case 'Baja':
-    default:
-      return 'bg-slate-100 text-slate-700'
-  }
-}
-
 const normalize = (t) => ({
   id: t.id?.toString() ?? t.ticket_id_pk?.toString() ?? '',
   title: t.title || '',
   requester: t.requester || t.createdByName || `Usuario ${t.createdById ?? ''}`,
-  priority: t.priority || 'N/A',
   status: t.status || '',
   statusId: t.statusId || t.status_id_fk || t.status_id_pk,
   category: t.category || t.topic || '',
@@ -221,14 +208,6 @@ export default function AdminResolved() {
                     }
                   >
                     {statusMeta.label}
-                  </span>
-                  <span
-                    className={
-                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ' +
-                      priorityClasses(t.priority)
-                    }
-                  >
-                    {t.priority}
                   </span>
                 </article>
               )
