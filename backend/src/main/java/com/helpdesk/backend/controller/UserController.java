@@ -91,7 +91,7 @@ public class UserController {
     return toDTO(users.save(u));
   }
 
-  // -------- DELETE --------
+  // -------- DELETE -------/
   @DeleteMapping("/{id}")
   public void delete(@PathVariable Long id) {
     users.deleteById(id);
