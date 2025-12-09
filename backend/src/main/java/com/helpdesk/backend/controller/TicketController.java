@@ -77,11 +77,20 @@ public class TicketController {
   @Transactional(readOnly = true)
   public List<TicketResponseDTO> list(
       @RequestParam(value = "mine", required = false) Boolean mine,
-      @RequestParam(value = "userId", required = false) Long userId) {
+      @RequestParam(value = "userId", required = false) Long userId,
+      @RequestParam(value = "statusId", required = false) Integer statusId) {
 
-    List<Ticket> result = (Boolean.TRUE.equals(mine) && userId != null)
-        ? tickets.findByCreatedById(userId)
-        : tickets.findAll();
+    boolean onlyMine = Boolean.TRUE.equals(mine) && userId != null;
+    List<Ticket> result;
+    if (onlyMine && statusId != null) {
+      result = tickets.findByCreatedByIdAndStatusId(userId, statusId);
+    } else if (onlyMine) {
+      result = tickets.findByCreatedById(userId);
+    } else if (statusId != null) {
+      result = tickets.findByStatusId(statusId);
+    } else {
+      result = tickets.findAll();
+    }
 
     return result.stream().map(this::toDto).toList();
   }

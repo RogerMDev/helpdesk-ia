@@ -5,8 +5,17 @@ const defaultHeaders = (token) => ({
   ...(token ? { Authorization: `Bearer ${token}` } : {}),
 })
 
-export async function fetchTickets(token) {
-  const res = await fetch(`${API_URL}/tickets`, {
+export async function fetchTickets(token, query = {}) {
+  const params = new URLSearchParams()
+  Object.entries(query || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      params.append(key, value)
+    }
+  })
+  const qs = params.toString()
+  const url = qs ? `${API_URL}/tickets?${qs}` : `${API_URL}/tickets`
+
+  const res = await fetch(url, {
     headers: defaultHeaders(token),
   })
   if (!res.ok) {

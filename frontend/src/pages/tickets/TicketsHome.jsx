@@ -4,11 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { fetchTickets } from '../../api/tickets.js'
 import { fetchUsers } from '../../api/users.js'
-import { getStatusMeta } from '../../utils/status.js'
-
-function statusLabelFromId(id) {
-  return getStatusMeta(id).label
-}
+import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
 
 function formatDateTime(value) {
   if (!value) return ''
@@ -26,14 +22,15 @@ export default function TicketsHome() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [statusFilters, setStatusFilters] = useState([1, 2]) // Abierto + En progreso por defecto
   const [showMenu, setShowMenu] = useState(false)
   const [userMap, setUserMap] = useState({})
   const menuRef = useRef(null)
+  const allStatusIds = useMemo(() => STATUS_OPTIONS.map((s) => s.id), [])
 
   const displayName = user?.name || 'Usuario'
   const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
-  // ✅ Marcamos admin por email (puedes usar id si prefieres)
   const roleId =
     user?.roleId ??
     user?.user_roles_id_fk ??
@@ -41,9 +38,6 @@ export default function TicketsHome() {
     user?.role ??
     user?.user_role
   const isAdmin = String(roleId) === '1' || user?.role === 'admin'
-
-  console.log('USER EN TICKETSHOME:', user)
-  console.log('isAdmin:', isAdmin)
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -68,7 +62,7 @@ export default function TicketsHome() {
       setError('')
       try {
         const [data, users] = await Promise.all([
-          fetchTickets(),
+          fetchTickets(token, { mine: true, userId: user?.id }),
           fetchUsers(token).catch(() => []),
         ])
         setTickets(data || [])
@@ -83,8 +77,9 @@ export default function TicketsHome() {
         setLoading(false)
       }
     }
+    if (!isReady || !isAuthenticated || !user?.id) return
     load()
-  }, [])
+  }, [isReady, isAuthenticated, user?.id, token])
 
   const nameForUser = (id, fallback) => userMap[id?.toString()] || fallback
 
@@ -102,6 +97,7 @@ export default function TicketsHome() {
         assignee: nameForUser(assigneeId, t.assignee || t.assigneeName || (t.assigneeId ? `Asignado (${t.assigneeId})` : 'Sin asignar')),
         status: statusMeta.label,
         statusClasses: statusMeta.classes,
+        statusId: statusMeta.id,
         date: formattedDate,
         createdById: createdId || null,
       }
@@ -110,7 +106,12 @@ export default function TicketsHome() {
 
   const filteredTickets = useMemo(() => {
     const term = search.trim().toLowerCase()
-    const base = normalized.filter((t) => (isAdmin ? true : t.createdById === user?.id))
+    let base = normalized.filter((t) => t.createdById === user?.id)
+
+    if (Array.isArray(statusFilters) && statusFilters.length > 0) {
+      base = base.filter((t) => statusFilters.includes(t.statusId))
+    }
+
     if (!term) return base
     return base.filter((t) => {
       return (
@@ -119,15 +120,10 @@ export default function TicketsHome() {
         t.requester.toLowerCase().includes(term)
       )
     })
-  }, [search, normalized, isAdmin, user?.id])
+  }, [search, normalized, user?.id, statusFilters])
 
-  const handleNewTicket = () => {
-    navigate('/tickets/new')
-  }
-
-  const handleOpenTicket = (id) => {
-    navigate(`/tickets/${id}`)
-  }
+  const handleNewTicket = () => navigate('/tickets/new')
+  const handleOpenTicket = (id) => navigate(`/tickets/${id}`)
 
   const handleProfile = () => {
     setShowMenu(false)
@@ -139,6 +135,17 @@ export default function TicketsHome() {
     logout()
     navigate('/login', { replace: true })
   }
+
+  const handleToggleStatus = (id) => {
+    setStatusFilters((prev) => {
+      if (!prev) return [id]
+      return prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    })
+  }
+
+  const handleSelectAll = () => setStatusFilters(allStatusIds)
+  const handleOnlyOpen = () => setStatusFilters([1, 2])
+  const handleClear = () => setStatusFilters([])
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -234,14 +241,53 @@ export default function TicketsHome() {
               </span>
             </div>
 
-            <div className="flex gap-2 justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              >
-                Filtros
-              </Button>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 w-full sm:w-auto">
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-sm text-slate-600">Estados:</span>
+                {STATUS_OPTIONS.map((opt) => {
+                  const checked = statusFilters.includes(opt.id)
+                  return (
+                    <label
+                      key={opt.id}
+                      className="flex items-center gap-1 text-sm text-slate-700 border border-slate-200 rounded-lg px-2 py-1 bg-white shadow-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => handleToggleStatus(opt.id)}
+                        className="accent-blue-600"
+                      />
+                      {opt.label}
+                    </label>
+                  )
+                })}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs"
+                  onClick={handleOnlyOpen}
+                >
+                  Solo abiertos
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs"
+                  onClick={handleSelectAll}
+                >
+                  Todos
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs"
+                  onClick={handleClear}
+                >
+                  Limpiar
+                </Button>
+              </div>
             </div>
           </div>
 
