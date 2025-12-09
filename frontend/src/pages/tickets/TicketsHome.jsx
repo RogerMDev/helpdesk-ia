@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
+import AvatarInitials from '../../components/AvatarInitials.jsx'
 import { fetchTickets } from '../../api/tickets.js'
 import { fetchUsers } from '../../api/users.js'
 import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
@@ -29,7 +30,6 @@ export default function TicketsHome() {
   const allStatusIds = useMemo(() => STATUS_OPTIONS.map((s) => s.id), [])
 
   const displayName = user?.name || 'Usuario'
-  const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
   const roleId =
     user?.roleId ??
@@ -168,10 +168,16 @@ export default function TicketsHome() {
               <button
                 type="button"
                 onClick={() => setShowMenu((v) => !v)}
-                className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
+                className="rounded-full border border-slate-200 hover:bg-slate-100 transition p-0.5"
                 title="Menu de usuario"
               >
-                {avatarInitial}
+                <AvatarInitials
+                  name={user?.name}
+                  lastName={user?.lastName}
+                  email={user?.email}
+                  size={38}
+                  className="border border-white"
+                />
               </button>
 
               {showMenu && (

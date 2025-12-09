@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
+import AvatarInitials from '../../components/AvatarInitials.jsx'
 import { fetchTicketById, deleteTicket, updateTicketStatus, updateTicketAssignee } from '../../api/tickets.js'
 import { listMessages, createMessage, deleteMessage, updateMessage } from '../../api/messages.js'
 import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
@@ -34,9 +35,47 @@ export default function TicketDetail() {
   const [changingStatus, setChangingStatus] = useState(false)
   const [assigning, setAssigning] = useState(false)
   const [releasing, setReleasing] = useState(false)
+  const [userMap, setUserMap] = useState({})
   const menuRef = useRef(null)
   const statusMenuRef = useRef(null)
-  const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
+
+  const upsertUsersById = async (ids = []) => {
+    const unique = Array.from(new Set(ids.filter(Boolean)))
+    if (unique.length === 0) return
+    const entries = await Promise.all(
+      unique.map(async (uid) => {
+        try {
+          const data = await fetchUserById(uid, token)
+          return [
+            uid,
+            {
+              name: data?.name || '',
+              lastName: data?.lastName || data?.last_name || '',
+              email: data?.email || '',
+            },
+          ]
+        } catch {
+          return [uid, { name: `Usuario ${uid}`, lastName: '', email: '' }]
+        }
+      })
+    )
+    setUserMap((prev) => {
+      const next = { ...prev }
+      entries.forEach(([uid, info]) => {
+        next[uid] = info
+      })
+      return next
+    })
+  }
+
+  const displayNameFor = (id, fallback) => {
+    if (!id) return fallback || ''
+    const info = userMap[id]
+    if (info?.name) {
+      return info.lastName ? `${info.name} ${info.lastName}` : info.name
+    }
+    return fallback || `Usuario ${id}`
+  }
 
   const roleId =
     user?.roleId ??
@@ -94,6 +133,7 @@ export default function TicketDetail() {
         } catch {
           // ignoramos errores y usamos los fallback
         }
+        await upsertUsersById([requesterId, assigneeId, ...(msgs || []).map((m) => m.userId)])
 
         setTicket({
           id: payload.id?.toString() ?? payload.ticket_id_pk?.toString() ?? id,
@@ -288,10 +328,16 @@ export default function TicketDetail() {
               <button
                 type="button"
                 onClick={() => setShowMenu((v) => !v)}
-                className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
+                className="rounded-full border border-slate-200 hover:bg-slate-100 transition p-0.5"
                 title="Menu de usuario"
               >
-                {avatarInitial}
+                <AvatarInitials
+                  name={user?.name}
+                  lastName={user?.lastName}
+                  email={user?.email}
+                  size={38}
+                  className="border border-white"
+                />
               </button>
               {showMenu && (
                 <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-200 bg-white shadow-lg py-1">
@@ -459,9 +505,16 @@ export default function TicketDetail() {
                   className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
                 >
                   <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span className="font-semibold text-slate-800">
-                      {m.userId === user?.id ? user?.name || 'Tú' : `Usuario ${m.userId ?? ''}`}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <AvatarInitials
+                        name={displayNameFor(m.userId, `Usuario ${m.userId ?? ''}`)}
+                        size={28}
+                        className="text-[11px]"
+                      />
+                      <span className="font-semibold text-slate-800">
+                        {m.userId === user?.id ? user?.name || 'Tú' : displayNameFor(m.userId, `Usuario ${m.userId ?? ''}`)}
+                      </span>
+                    </div>
                     <span>{formatDateTime(m.createdAt) || 'Sin fecha'}</span>
                   </div>
                   {editingId === m.id ? (

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import Input from '../../components/ui/Input.jsx'
+import AvatarInitials from '../../components/AvatarInitials.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 
 const MOCK_USERS = [
@@ -19,8 +20,6 @@ export default function AdminUsers() {
   const [selected, setSelected] = useState(MOCK_USERS[0])
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
-
-  const avatarInitial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
   useEffect(() => {
     const handler = (e) => {
@@ -90,10 +89,16 @@ export default function AdminUsers() {
               <button
                 type="button"
                 onClick={() => setShowMenu((v) => !v)}
-                className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
+                className="rounded-full border border-slate-200 hover:bg-slate-100 transition p-0.5"
                 title="Menu de usuario"
               >
-                {avatarInitial}
+                <AvatarInitials
+                  name={user?.name}
+                  lastName={user?.lastName}
+                  email={user?.email}
+                  size={38}
+                  className="border border-white"
+                />
               </button>
               {showMenu && (
                 <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-200 bg-white shadow-lg py-1">

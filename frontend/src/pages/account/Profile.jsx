@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import Input from '../../components/ui/Input.jsx'
+import AvatarInitials from '../../components/AvatarInitials.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { updateUser, fetchUserById } from '../../api/users.js'
 
@@ -133,18 +134,19 @@ export default function Profile() {
         <div className="max-w-5xl mx-auto px-4 py-10">
           <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 sm:p-10">
             <div className="flex flex-col items-center gap-3">
-              <div className="h-24 w-24 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
-                <span className="text-4xl">👤</span>
-              </div>
+              <AvatarInitials
+                name={form.name}
+                lastName={form.lastName}
+                email={form.email}
+                size={96}
+                className="text-3xl"
+              />
               <div className="text-center">
                 <h2 className="text-xl font-semibold text-slate-900">Perfil de Usuario</h2>
                 <p className="text-sm text-slate-500">
                   {form.name} {form.lastName}
                 </p>
               </div>
-              <Button type="button" variant="ghost" className="px-4 py-2">
-                Cambiar foto
-              </Button>
             </div>
 
             <form onSubmit={onSubmit} className="mt-8 space-y-6">
