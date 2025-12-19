@@ -1,25 +1,66 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import Input from '../../components/ui/Input.jsx'
 import AvatarInitials from '../../components/AvatarInitials.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
-
-const MOCK_USERS = [
-  { id: 1, name: 'Laura', lastName: 'Martin', email: 'laura@empresa.com', phone: '600123456', roleId: 0 },
-  { id: 2, name: 'Carlos', lastName: 'Ruiz', email: 'carlos@empresa.com', phone: '600123457', roleId: 1 },
-  { id: 3, name: 'Ana', lastName: 'Perez', email: 'ana@empresa.com', phone: '600123458', roleId: 0 },
-  { id: 4, name: 'Marta', lastName: 'Lopez', email: 'marta@empresa.com', phone: '600123459', roleId: 0 },
-]
+import { fetchUsers, updateUser, deleteUser as deleteUserApi } from '../../api/users.js'
 
 export default function AdminUsers() {
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, logout, token } = useAuth()
   const [search, setSearch] = useState('')
-  const [users, setUsers] = useState(MOCK_USERS)
-  const [selected, setSelected] = useState(MOCK_USERS[0])
+  const [users, setUsers] = useState([])
+  const [selected, setSelected] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
+
+  const normalizeUser = useCallback((u) => {
+    const roleRaw =
+      u?.roleId ??
+      u?.user_roles_id_fk ??
+      u?.role_id_fk ??
+      u?.role_id ??
+      u?.role
+
+    let roleId = null
+    if (roleRaw === 'admin') roleId = 1
+    else if (roleRaw === 'user') roleId = 0
+    else if (roleRaw !== undefined && roleRaw !== null && !Number.isNaN(Number(roleRaw))) roleId = Number(roleRaw)
+
+    return {
+      id: u?.id ?? u?.user_id_pk ?? u?.user_id ?? null,
+      name: u?.name ?? '',
+      lastName: u?.lastName ?? u?.last_name ?? '',
+      email: u?.email ?? '',
+      phone: u?.phone ?? '',
+      roleId,
+      roleName: u?.roleName ?? u?.role_name ?? u?.role ?? '',
+    }
+  }, [])
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await fetchUsers(token)
+      const parsed = (data || []).map(normalizeUser)
+      setUsers(parsed)
+      setSelected((prev) => {
+        if (!parsed.length) return null
+        if (!prev) return parsed[0]
+        const match = parsed.find((u) => u.id === prev.id)
+        return match || parsed[0]
+      })
+    } catch (err) {
+      setError(err.message || 'No se pudieron cargar los usuarios')
+    } finally {
+      setLoading(false)
+    }
+  }, [normalizeUser, token])
 
   useEffect(() => {
     const handler = (e) => {
@@ -30,6 +71,10 @@ export default function AdminUsers() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showMenu])
+
+  useEffect(() => {
+    loadUsers()
+  }, [loadUsers])
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -48,23 +93,64 @@ export default function AdminUsers() {
     setSelected((prev) => ({ ...prev, [name]: value }))
   }
 
-  const saveUser = () => {
-    setUsers((prev) => prev.map((u) => (u.id === selected.id ? selected : u)))
-    // TODO: persistir via API
+  const saveUser = async () => {
+    if (!selected?.id || saving) return
+    setSaving(true)
+    setError('')
+    try {
+      const updated = await updateUser(
+        selected.id,
+        {
+          name: selected.name,
+          lastName: selected.lastName,
+          email: selected.email,
+          phone: selected.phone,
+          roleId: selected.roleId,
+        },
+        token
+      )
+      const normalized = normalizeUser(updated)
+      setUsers((prev) => prev.map((u) => (u.id === normalized.id ? normalized : u)))
+      setSelected(normalized)
+    } catch (err) {
+      setError(err.message || 'No se pudieron guardar los cambios')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const deleteUser = (id) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id))
-    if (selected?.id === id) setSelected(null)
-    // TODO: eliminar via API
+  const deleteUser = async (id) => {
+    if (!id || saving) return
+    const confirmed = window.confirm('¿Quieres eliminar este usuario? Esta acción es irreversible.')
+    if (!confirmed) return
+    setSaving(true)
+    setError('')
+    try {
+      await deleteUserApi(id, token)
+      setUsers((prev) => prev.filter((u) => u.id !== id))
+      if (selected?.id === id) setSelected(null)
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar el usuario')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const toggleAdmin = (u) => {
+  const toggleAdmin = async (u) => {
+    if (!u?.id || saving) return
     const nextRole = u.roleId === 1 ? 0 : 1
-    const updated = { ...u, roleId: nextRole }
-    setUsers((prev) => prev.map((item) => (item.id === u.id ? updated : item)))
-    if (selected?.id === u.id) setSelected(updated)
-    // TODO: persistir via API
+    setSaving(true)
+    setError('')
+    try {
+      const updated = await updateUser(u.id, { roleId: nextRole }, token)
+      const normalized = normalizeUser(updated)
+      setUsers((prev) => prev.map((item) => (item.id === u.id ? normalized : item)))
+      if (selected?.id === u.id) setSelected(normalized)
+    } catch (err) {
+      setError(err.message || 'No se pudo cambiar el rol')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -148,9 +234,20 @@ export default function AdminUsers() {
             </div>
           </div>
 
+          {error && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-1 space-y-2">
-              {filtered.map((u) => (
+              {loading && (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
+                  Cargando usuarios...
+                </div>
+              )}
+              {!loading && filtered.map((u) => (
                 <div
                   key={u.id}
                   className={`rounded-xl border px-3 py-3 cursor-pointer transition ${
@@ -177,27 +274,29 @@ export default function AdminUsers() {
                   </div>
                   <button
                     type="button"
-                    className="mt-2 text-xs text-blue-700 hover:underline"
+                    className="mt-2 text-xs text-blue-700 hover:underline disabled:text-slate-400"
                     onClick={(e) => {
                       e.stopPropagation()
                       toggleAdmin(u)
                     }}
+                    disabled={saving}
                   >
                     {u.roleId === 1 ? 'Quitar admin' : 'Hacer admin'}
                   </button>
                   <button
                     type="button"
-                    className="mt-1 text-xs text-rose-600 hover:underline"
+                    className="mt-1 text-xs text-rose-600 hover:underline disabled:text-slate-400"
                     onClick={(e) => {
                       e.stopPropagation()
                       deleteUser(u.id)
                     }}
+                    disabled={saving}
                   >
                     Eliminar usuario
                   </button>
                 </div>
               ))}
-              {filtered.length === 0 && (
+              {!loading && filtered.length === 0 && (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
                   Sin resultados
                 </div>
@@ -239,6 +338,7 @@ export default function AdminUsers() {
                       as="select"
                       value={selected.roleId}
                       onChange={(e) => updateField('roleId', Number(e.target.value))}
+                      disabled={saving}
                     >
                       <option value={0}>Usuario</option>
                       <option value={1}>Admin</option>
@@ -250,11 +350,12 @@ export default function AdminUsers() {
                       variant="ghost"
                       className="border border-slate-200 text-slate-700"
                       onClick={() => setSelected(null)}
+                      disabled={saving}
                     >
                       Cancelar
                     </Button>
-                    <Button type="button" onClick={saveUser}>
-                      Guardar cambios
+                    <Button type="button" onClick={saveUser} disabled={saving}>
+                      {saving ? 'Guardando...' : 'Guardar cambios'}
                     </Button>
                   </div>
                 </div>

@@ -40,7 +40,7 @@ export default function TicketDetail() {
   const statusMenuRef = useRef(null)
 
   const upsertUsersById = async (ids = []) => {
-    const unique = Array.from(new Set(ids.filter(Boolean)))
+    const unique = Array.from(new Set(ids.filter(Boolean).map((val) => val?.toString?.()))).filter(Boolean)
     if (unique.length === 0) return
     const entries = await Promise.all(
       unique.map(async (uid) => {
@@ -62,19 +62,29 @@ export default function TicketDetail() {
     setUserMap((prev) => {
       const next = { ...prev }
       entries.forEach(([uid, info]) => {
-        next[uid] = info
+        if (uid) {
+          next[uid] = info
+        }
       })
       return next
     })
   }
 
-  const displayNameFor = (id, fallback) => {
-    if (!id) return fallback || ''
-    const info = userMap[id]
-    if (info?.name) {
-      return info.lastName ? `${info.name} ${info.lastName}` : info.name
-    }
-    return fallback || `Usuario ${id}`
+  const userInfoFor = (id) => {
+    const key = id?.toString?.()
+    const info = key ? userMap[key] : null
+    const isCurrentUser = key && user?.id?.toString?.() === key
+
+    const name = info?.name || (isCurrentUser ? user?.name : '') || ''
+    const lastName =
+      info?.lastName ||
+      info?.last_name ||
+      (isCurrentUser ? user?.lastName || user?.last_name : '') ||
+      ''
+    const email = info?.email || (isCurrentUser ? user?.email : '') || ''
+    const displayName = [name, lastName].filter(Boolean).join(' ') || email || (key ? `Usuario ${key}` : '')
+
+    return { name: name || displayName, lastName, email, displayName }
   }
 
   const roleId =
@@ -499,75 +509,86 @@ export default function TicketDetail() {
             </div>
 
             <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
-                >
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <div className="flex items-center gap-2">
-                      <AvatarInitials
-                        name={displayNameFor(m.userId, `Usuario ${m.userId ?? ''}`)}
-                        size={28}
-                        className="text-[11px]"
-                      />
-                      <span className="font-semibold text-slate-800">
-                        {m.userId === user?.id ? user?.name || 'Tú' : displayNameFor(m.userId, `Usuario ${m.userId ?? ''}`)}
-                      </span>
-                    </div>
-                    <span>{formatDateTime(m.createdAt) || 'Sin fecha'}</span>
-                  </div>
-                  {editingId === m.id ? (
-                    <div className="space-y-2 mt-2">
-                      <textarea
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        rows={3}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-600"
-                      />
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          className="text-xs font-semibold text-slate-500 hover:text-slate-700"
-                          onClick={handleCancelEdit}
-                          disabled={savingEdit}
-                        >
-                          Cancelar
-                        </button>
-                        <Button
-                          onClick={handleSaveEdit}
-                          disabled={!editText.trim() || savingEdit}
-                          className="px-4 py-2 text-xs"
-                        >
-                          {savingEdit ? 'Guardando...' : 'Guardar'}
-                        </Button>
+              {messages.map((m) => {
+                const author = userInfoFor(m.userId)
+                const isOwnMessage = m.userId?.toString?.() === user?.id?.toString?.()
+                const authorLabel =
+                  (isOwnMessage && ([user?.name, user?.lastName].filter(Boolean).join(' ') || author.displayName)) ||
+                  author.displayName ||
+                  (m.userId ? `Usuario ${m.userId}` : 'Usuario')
+
+                return (
+                  <div
+                    key={m.id}
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                  >
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <div className="flex items-center gap-2">
+                        <AvatarInitials
+                          name={author.name}
+                          lastName={author.lastName}
+                          email={author.email}
+                          size={28}
+                          className="text-[11px]"
+                        />
+                        <span className="font-semibold text-slate-800">
+                          {authorLabel}
+                        </span>
                       </div>
+                      <span>{formatDateTime(m.createdAt) || 'Sin fecha'}</span>
                     </div>
-                  ) : (
-                    <>
-                      <p className="text-sm text-slate-800 mt-1">{m.content}</p>
-                      {(m.userId === user?.id || isAdmin) && (
-                        <div className="flex justify-end mt-2 gap-3">
+                    {editingId === m.id ? (
+                      <div className="space-y-2 mt-2">
+                        <textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          rows={3}
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                        />
+                        <div className="flex justify-end gap-2">
                           <button
                             type="button"
-                            className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
-                            onClick={() => handleStartEdit(m)}
+                            className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                            onClick={handleCancelEdit}
+                            disabled={savingEdit}
                           >
-                            Editar mensaje
+                            Cancelar
                           </button>
-                          <button
-                            type="button"
-                            className="text-xs text-rose-600 hover:text-rose-700 font-semibold"
-                            onClick={() => handleDelete(m.id)}
+                          <Button
+                            onClick={handleSaveEdit}
+                            disabled={!editText.trim() || savingEdit}
+                            className="px-4 py-2 text-xs"
                           >
-                            Borrar mensaje
-                          </button>
+                            {savingEdit ? 'Guardando...' : 'Guardar'}
+                          </Button>
                         </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              ))}
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm text-slate-800 mt-1">{m.content}</p>
+                        {(isOwnMessage || isAdmin) && (
+                          <div className="flex justify-end mt-2 gap-3">
+                            <button
+                              type="button"
+                              className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+                              onClick={() => handleStartEdit(m)}
+                            >
+                              Editar mensaje
+                            </button>
+                            <button
+                              type="button"
+                              className="text-xs text-rose-600 hover:text-rose-700 font-semibold"
+                              onClick={() => handleDelete(m.id)}
+                            >
+                              Borrar mensaje
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )
+              })}
               {messages.length === 0 && (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
                   No hay mensajes aún. Escribe el primero.

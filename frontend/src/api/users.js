@@ -83,3 +83,21 @@ export async function updateUser(id, payload, token) {
   }
   return res.json()
 }
+
+export async function deleteUser(id, token) {
+  const res = await fetch(`${API_URL}/users/${id}`, {
+    method: 'DELETE',
+    headers: defaultHeaders(token),
+  })
+  if (!res.ok) {
+    let message = 'No se pudo eliminar el usuario'
+    try {
+      const data = await res.json()
+      if (data?.message) message = data.message
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message)
+  }
+  return true
+}
