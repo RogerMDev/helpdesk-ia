@@ -15,6 +15,7 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [showAdminsOnly, setShowAdminsOnly] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
 
@@ -78,14 +79,15 @@ export default function AdminUsers() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
-    if (!term) return users
-    return users.filter(
+    const base = showAdminsOnly ? users.filter((u) => u.roleId === 1) : users
+    if (!term) return base
+    return base.filter(
       (u) =>
         u.name.toLowerCase().includes(term) ||
         u.lastName.toLowerCase().includes(term) ||
         u.email.toLowerCase().includes(term)
     )
-  }, [search, users])
+  }, [search, users, showAdminsOnly])
 
   const selectUser = (u) => setSelected(u)
 
@@ -136,25 +138,8 @@ export default function AdminUsers() {
     }
   }
 
-  const toggleAdmin = async (u) => {
-    if (!u?.id || saving) return
-    const nextRole = u.roleId === 1 ? 0 : 1
-    setSaving(true)
-    setError('')
-    try {
-      const updated = await updateUser(u.id, { roleId: nextRole }, token)
-      const normalized = normalizeUser(updated)
-      setUsers((prev) => prev.map((item) => (item.id === u.id ? normalized : item)))
-      if (selected?.id === u.id) setSelected(normalized)
-    } catch (err) {
-      setError(err.message || 'No se pudo cambiar el rol')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen h-screen overflow-hidden bg-slate-50 flex flex-col">
       <header className="w-full bg-white border-b border-slate-200">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -216,21 +201,32 @@ export default function AdminUsers() {
         </div>
       </header>
 
-      <main className="flex-1">
-        <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+      <main className="flex-1 overflow-hidden">
+        <div className="mx-auto max-w-6xl px-4 py-6 space-y-6 h-full overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900">Usuarios</h1>
               <p className="text-sm text-slate-500">Busca por nombre, apellidos o correo. Edita y cambia roles.</p>
             </div>
-            <div className="sm:w-72">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar usuario..."
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-              />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-end">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={showAdminsOnly}
+                  onChange={(e) => setShowAdminsOnly(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                />
+                Solo admins
+              </label>
+              <div className="sm:w-64">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar usuario..."
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
             </div>
           </div>
 
@@ -241,7 +237,7 @@ export default function AdminUsers() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-1 space-y-2">
+            <div className="lg:col-span-1 space-y-2 max-h-[75vh] overflow-y-auto pr-1">
               {loading && (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
                   Cargando usuarios...
@@ -272,28 +268,6 @@ export default function AdminUsers() {
                       {u.roleId === 1 ? 'Admin' : 'Usuario'}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    className="mt-2 text-xs text-blue-700 hover:underline disabled:text-slate-400"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggleAdmin(u)
-                    }}
-                    disabled={saving}
-                  >
-                    {u.roleId === 1 ? 'Quitar admin' : 'Hacer admin'}
-                  </button>
-                  <button
-                    type="button"
-                    className="mt-1 text-xs text-rose-600 hover:underline disabled:text-slate-400"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      deleteUser(u.id)
-                    }}
-                    disabled={saving}
-                  >
-                    Eliminar usuario
-                  </button>
                 </div>
               ))}
               {!loading && filtered.length === 0 && (
@@ -356,6 +330,15 @@ export default function AdminUsers() {
                     </Button>
                     <Button type="button" onClick={saveUser} disabled={saving}>
                       {saving ? 'Guardando...' : 'Guardar cambios'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      onClick={() => selected?.id && deleteUser(selected.id)}
+                      disabled={saving || !selected?.id}
+                      className="ml-auto"
+                    >
+                      {saving ? 'Procesando...' : 'Borrar usuario'}
                     </Button>
                   </div>
                 </div>
