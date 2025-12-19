@@ -6,6 +6,9 @@ import AvatarInitials from '../../components/AvatarInitials.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { fetchUsers, updateUser, deleteUser as deleteUserApi } from '../../api/users.js'
 
+const ADMIN_ROLE_ID = 1
+const USER_ROLE_ID = 3
+
 export default function AdminUsers() {
   const navigate = useNavigate()
   const { user, logout, token } = useAuth()
@@ -28,8 +31,8 @@ export default function AdminUsers() {
       u?.role
 
     let roleId = null
-    if (roleRaw === 'admin') roleId = 1
-    else if (roleRaw === 'user') roleId = 0
+    if (roleRaw === 'admin') roleId = ADMIN_ROLE_ID
+    else if (roleRaw === 'user') roleId = USER_ROLE_ID
     else if (roleRaw !== undefined && roleRaw !== null && !Number.isNaN(Number(roleRaw))) roleId = Number(roleRaw)
 
     return {
@@ -79,7 +82,7 @@ export default function AdminUsers() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
-    const base = showAdminsOnly ? users.filter((u) => u.roleId === 1) : users
+    const base = showAdminsOnly ? users.filter((u) => u.roleId === ADMIN_ROLE_ID) : users
     if (!term) return base
     return base.filter(
       (u) =>
@@ -95,11 +98,21 @@ export default function AdminUsers() {
     setSelected((prev) => ({ ...prev, [name]: value }))
   }
 
+  const handleRoleChange = (e) => {
+    const next = Number(e.target.value)
+    if (selected?.roleId !== ADMIN_ROLE_ID && next === ADMIN_ROLE_ID) {
+      const confirmAdmin = window.confirm('¿Seguro que quieres convertir este usuario en administrador?')
+      if (!confirmAdmin) return
+    }
+    updateField('roleId', next)
+  }
+
   const saveUser = async () => {
     if (!selected?.id || saving) return
     setSaving(true)
     setError('')
     try {
+      const roleId = selected.roleId ?? USER_ROLE_ID
       const updated = await updateUser(
         selected.id,
         {
@@ -107,7 +120,7 @@ export default function AdminUsers() {
           lastName: selected.lastName,
           email: selected.email,
           phone: selected.phone,
-          roleId: selected.roleId,
+          roleId,
         },
         token
       )
@@ -262,10 +275,10 @@ export default function AdminUsers() {
                     </div>
                     <span
                       className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                        u.roleId === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'
+                        u.roleId === ADMIN_ROLE_ID ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'
                       }`}
                     >
-                      {u.roleId === 1 ? 'Admin' : 'Usuario'}
+                      {u.roleId === ADMIN_ROLE_ID ? 'Admin' : 'Usuario'}
                     </span>
                   </div>
                 </div>
@@ -310,12 +323,12 @@ export default function AdminUsers() {
                       label="Rol"
                       name="roleId"
                       as="select"
-                      value={selected.roleId}
-                      onChange={(e) => updateField('roleId', Number(e.target.value))}
+                      value={selected.roleId ?? USER_ROLE_ID}
+                      onChange={handleRoleChange}
                       disabled={saving}
                     >
-                      <option value={0}>Usuario</option>
-                      <option value={1}>Admin</option>
+                      <option value={USER_ROLE_ID}>Usuario</option>
+                      <option value={ADMIN_ROLE_ID}>Admin</option>
                     </Input>
                   </div>
                   <div className="flex gap-3">
