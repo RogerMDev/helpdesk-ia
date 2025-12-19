@@ -26,15 +26,15 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
 // --- Auth ---
 export function loginRequest(email, password) {
   // Ajusta la ruta si tu backend usa otra
-  return apiFetch('/auth/login', { method: 'POST', body: { email, password } })
+  return apiFetch('/api/auth/login', { method: 'POST', body: { email, password } })
 }
 
 export function requestPasswordReset(email) {
-  return apiFetch('/auth/forgot-password', { method: 'POST', body: { email } })
+  return apiFetch('/api/auth/forgot-password', { method: 'POST', body: { email } })
 }
 
 export function resetPassword({ token, password }) {
-  return apiFetch('/auth/reset-password', {
+  return apiFetch('/api/auth/reset-password', {
     method: 'POST',
     body: { token, password },
   })
@@ -42,7 +42,7 @@ export function resetPassword({ token, password }) {
 
 // (Opcional) registro centralizado
 export function registerRequest({ name, lastName, email, phone, password }) {
-  return apiFetch('/auth/register', {
+  return apiFetch('/api/auth/register', {
     method: 'POST',
     body: { name, lastName, email, phone, password },
   })

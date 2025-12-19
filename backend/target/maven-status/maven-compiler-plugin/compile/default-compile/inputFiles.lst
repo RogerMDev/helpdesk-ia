@@ -15,12 +15,14 @@ C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backen
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\dto\ResetPasswordRequest.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\dto\UserResponse.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\model\Attachment.java
+C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\model\PasswordResetToken.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\model\Status.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\model\Ticket.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\model\TicketMessage.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\model\User.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\model\UserRoles.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\repository\AttachmentRepository.java
+C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\repository\PasswordResetTokenRepository.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\repository\StatusRepository.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\repository\TicketMessageRepository.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\repository\TicketRepository.java

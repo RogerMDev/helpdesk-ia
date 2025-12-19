@@ -10,7 +10,6 @@ com\helpdesk\backend\controller\TicketController$UpdateStatusDTO.class
 com\helpdesk\backend\dto\ForgotPasswordRequest.class
 com\helpdesk\backend\model\TicketMessage.class
 com\helpdesk\backend\repository\TicketMessageRepository.class
-com\helpdesk\backend\controller\TicketController$UpdateTicketDTO.class
 com\helpdesk\backend\controller\TicketMessageController.class
 com\helpdesk\backend\model\UserRoles.class
 com\helpdesk\backend\dto\UserResponse.class
