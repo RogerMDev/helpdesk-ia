@@ -26,6 +26,7 @@ export default function TicketsHome() {
   const [statusFilters, setStatusFilters] = useState([1, 2]) // Abierto + En progreso por defecto
   const [showMenu, setShowMenu] = useState(false)
   const [userMap, setUserMap] = useState({})
+  const [seenStatus, setSeenStatus] = useState({})
   const menuRef = useRef(null)
   const allStatusIds = useMemo(() => STATUS_OPTIONS.map((s) => s.id), [])
 
@@ -38,6 +39,14 @@ export default function TicketsHome() {
     user?.role ??
     user?.user_role
   const isAdmin = String(roleId) === '1' || user?.role === 'admin'
+  const seenKey = user?.id ? `ticketStatusSeen:${user.id}` : null
+
+  const persistSeenStatus = (next) => {
+    setSeenStatus(next)
+    if (seenKey) {
+      localStorage.setItem(seenKey, JSON.stringify(next))
+    }
+  }
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -48,6 +57,17 @@ export default function TicketsHome() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showMenu])
+
+  useEffect(() => {
+    if (!seenKey) return
+    try {
+      const raw = localStorage.getItem(seenKey)
+      const parsed = raw ? JSON.parse(raw) : {}
+      setSeenStatus(parsed && typeof parsed === 'object' ? parsed : {})
+    } catch {
+      setSeenStatus({})
+    }
+  }, [seenKey])
 
   useEffect(() => {
     if (!isReady) return
@@ -100,9 +120,32 @@ export default function TicketsHome() {
         statusId: statusMeta.id,
         date: formattedDate,
         createdById: createdId || null,
+        assigneeId: assigneeId || null,
       }
     })
   }, [tickets, userMap])
+
+  useEffect(() => {
+    if (!user?.id || isAdmin || !seenKey) return
+    if (!normalized.length) return
+    setSeenStatus((prev) => {
+      let next = prev
+      let changed = false
+      normalized.forEach((ticket) => {
+        if (!ticket?.id) return
+        if (ticket.statusId == null) return
+        if (next[ticket.id] == null) {
+          if (next === prev) next = { ...prev }
+          next[ticket.id] = ticket.statusId
+          changed = true
+        }
+      })
+      if (changed && seenKey) {
+        localStorage.setItem(seenKey, JSON.stringify(next))
+      }
+      return changed ? next : prev
+    })
+  }, [normalized, user?.id, isAdmin, seenKey])
 
   const filteredTickets = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -123,7 +166,18 @@ export default function TicketsHome() {
   }, [search, normalized, user?.id, statusFilters])
 
   const handleNewTicket = () => navigate('/tickets/new')
-  const handleOpenTicket = (id) => navigate(`/tickets/${id}`)
+  const handleOpenTicket = (ticket) => {
+    if (!ticket?.id) return
+    if (
+      !isAdmin &&
+      ticket.statusId != null &&
+      seenKey
+    ) {
+      const next = { ...seenStatus, [ticket.id]: ticket.statusId }
+      persistSeenStatus(next)
+    }
+    navigate(`/tickets/${ticket.id}`)
+  }
 
   const handleProfile = () => {
     setShowMenu(false)
@@ -146,6 +200,13 @@ export default function TicketsHome() {
   const handleSelectAll = () => setStatusFilters(allStatusIds)
   const handleOnlyOpen = () => setStatusFilters([1, 2])
   const handleClear = () => setStatusFilters([])
+
+  const hasStatusUpdate = (ticket) => {
+    if (!ticket?.id || isAdmin) return false
+    const prevStatus = seenStatus?.[ticket.id]
+    if (prevStatus == null) return false
+    return Number(prevStatus) !== Number(ticket.statusId)
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -313,9 +374,15 @@ export default function TicketsHome() {
             {!loading && filteredTickets.map((ticket) => (
               <article
                 key={ticket.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl bg-white shadow-sm border border-slate-200 px-4 py-3 cursor-pointer hover:shadow-md transition"
-                onClick={() => handleOpenTicket(ticket.id)}
+                className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl bg-white shadow-sm border border-slate-200 px-4 py-3 cursor-pointer hover:shadow-md transition relative"
+                onClick={() => handleOpenTicket(ticket)}
               >
+                {hasStatusUpdate(ticket) && (
+                  <span
+                    className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500"
+                    title="Estado actualizado"
+                  />
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-blue-700 font-semibold hover:underline">{ticket.id}</span>

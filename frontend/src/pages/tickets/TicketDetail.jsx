@@ -94,6 +94,7 @@ export default function TicketDetail() {
     user?.role ??
     user?.user_role
   const isAdmin = String(roleId) === '1' || user?.role === 'admin'
+  const seenKey = user?.id ? `ticketStatusSeen:${user.id}` : null
 
   useEffect(() => {
     const handler = (e) => {
@@ -175,6 +176,21 @@ export default function TicketDetail() {
     }
     load()
   }, [id])
+
+  useEffect(() => {
+    if (!ticket || isAdmin || !seenKey) return
+    if (ticket.assigneeId?.toString() !== user?.id?.toString()) return
+    if (ticket.statusId == null || !ticket.id) return
+    try {
+      const raw = localStorage.getItem(seenKey)
+      const parsed = raw ? JSON.parse(raw) : {}
+      const next = { ...(parsed && typeof parsed === 'object' ? parsed : {}) }
+      next[ticket.id] = ticket.statusId
+      localStorage.setItem(seenKey, JSON.stringify(next))
+    } catch {
+      // ignore localStorage errors
+    }
+  }, [ticket, user?.id, isAdmin, seenKey])
 
   const sendMessage = async () => {
     if (!input.trim() || !user?.id) return
