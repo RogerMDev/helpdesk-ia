@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -76,30 +76,40 @@ export default function TicketsHome() {
     }
   }, [isAdmin, isAuthenticated, isReady, navigate])
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      setError('')
-      try {
-        const [data, users] = await Promise.all([
-          fetchTickets(token, { mine: true, userId: user?.id }),
-          fetchUsers(token).catch(() => []),
-        ])
-        setTickets(data || [])
-        const map = {}
-        ;(users || []).forEach((u) => {
-          if (u?.id) map[u.id.toString()] = u.name || u.email || ''
-        })
-        setUserMap(map)
-      } catch (err) {
-        setError(err.message || 'No se pudieron cargar los tickets')
-      } finally {
-        setLoading(false)
-      }
-    }
+  const loadTickets = useCallback(async () => {
     if (!isReady || !isAuthenticated || !user?.id) return
-    load()
+    setLoading(true)
+    setError('')
+    try {
+      const [data, users] = await Promise.all([
+        fetchTickets(token, { mine: true, userId: user?.id }),
+        fetchUsers(token).catch(() => []),
+      ])
+      setTickets(data || [])
+      const map = {}
+      ;(users || []).forEach((u) => {
+        if (u?.id) map[u.id.toString()] = u.name || u.email || ''
+      })
+      setUserMap(map)
+    } catch (err) {
+      setError(err.message || 'No se pudieron cargar los tickets')
+    } finally {
+      setLoading(false)
+    }
   }, [isReady, isAuthenticated, user?.id, token])
+
+  useEffect(() => {
+    loadTickets()
+  }, [loadTickets])
+
+  useEffect(() => {
+    if (isAdmin) return
+    if (!isReady || !isAuthenticated || !user?.id) return
+    const id = setInterval(() => {
+      loadTickets()
+    }, 15000)
+    return () => clearInterval(id)
+  }, [isAdmin, isReady, isAuthenticated, user?.id, loadTickets])
 
   const nameForUser = (id, fallback) => userMap[id?.toString()] || fallback
 
