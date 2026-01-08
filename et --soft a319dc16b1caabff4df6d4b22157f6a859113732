@@ -1,0 +1,79 @@
+[33ma62c80e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mSprint2_branch[m[33m)[m changes
+[33ma5959ae[m a
+[33mdcb4728[m .env
+[33m670e7d5[m Red dot when status changes
+[33ma319dc1[m[33m ([m[1;31morigin/Sprint2_branch[m[33m)[m Forgot password now is linked with Bravo SMTP
+[33m5c41ef6[m Admin to user role working
+[33m1da0eff[m Users in AdminUsers.jsx now shown with sclor bar, "Delete User" button added
+[33m1684ea5[m AdminUsers.jsx fetch now from DDBB
+[33mb4866fc[m Profile image updated depending on users name
+[33m230d823[m Filters for "user" profile added
+[33m2b97947[m Tickets filtering added to "user" view
+[33mbb1500d[m Registration now records creation dates on DDBB
+[33me6abe76[m Profile data is now wired with DDBB and editable
+[33me4eeba1[m "Priority" attribute deleted
+[33mcb6f250[m User status view fixed
+[33m9945323[m Ticket status edit added
+[33m11fb6f9[m Editing ticket comments added / Admin status change feature added
+[33m141370c[m Ticket message working and wired to DDBB
+[33mfe1794e[m Fixed ticket view
+[33m57f0156[m Tickets are now real from the DDBB
+[33m48c2eac[m Navigation to tickets/${t.id} done
+[33mcd5ee69[m Tickets screen added
+[33medd427c[m Admin home working
+[33mc3b4538[m Users management & closed / resolved tickets
+[33m29d1dcb[m Admin recognition
+[33m44d0c59[m Ticket categories changes + new Admin dashboard
+[33m9718f96[m NewTicket.jsx added
+[33ma995f72[m Logout and Profile from tickets screen
+[33m4eafb8b[m Tickets screen working
+[33m26b0616[m TicketsHome.jsx screen added
+[33m94a19df[m Register and Login are connected
+[33m77e5906[m Login function added to User.js
+[33m776a592[m SecurityConfig edited & Register page creates user in DDBB
+[33m6fe833f[m Wiring frontend & adding DTO's
+[33m6001a38[m Wiring Login, Register
+[33m6c9e2e6[m ResetPassword.jsx + api.js update
+[33m847b816[m "Cancel" button added
+[33mf254394[m Role, department fields deleted
+[33m77041e1[m Register page linked to Login page
+[33m1602dac[m Login and forgo password created
+[33m3df71d4[m Logo added to login page
+[33m824578f[m Logo added
+[33mcc290cc[m Tailwind fix
+[33m3348d93[m Imports i packages adjusting
+[33macb5983[m Login page changed
+[33m21ddfa7[m Changes for App.jsx & Main.jsx
+[33mc9cc276[m App.jsx  i main.jsx changed for new frontend
+[33mfcbd00f[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Frontend OK
+[33m8ca63a0[m Basic content added
+[33m7c7d9d7[m /register & /login
+[33m7176698[m ui components added
+[33mfe7a4d5[m client.js connection done
+[33m32ede2e[m Package setup for frontend done
+[33m699bded[m CRUD operations done
+[33m16f0984[m TicketMessage CRUD working
+[33m240d854[m Ticket CRUD actions working
+[33md5b70d4[m CRUD operations working
+[33m8955b6d[m User roles repository
+[33m2d60bd2[m JsonIgnore added
+[33ma673913[m New model classes
+[33mb45fc29[m Searching by id // working
+[33maebf26c[m GetMapping Id
+[33m3f98da3[m SecurityConfig addition
+[33mb49b0ba[m Clases creation
+[33me93aab0[m Model Package + User class
+[33m0bf2e91[m User + UserRepository added
+[33m7b7b99c[m Role class added
+[33mb46ad00[m DB connected to .properties
+[33m13ca132[m Postgresql Db .xml change
+[33md4dc155[m Front  + /health done
+[33mf5931e0[m frontend: vite + tailwind working
+[33m99b70c5[m Commit
+[33md68af2c[m Tailwind and React files added
+[33me7c77aa[m Folders
+[33m702b750[m Create docs
+[33m66eb035[m Create ai-worker
+[33m71e75ec[m Create backend
+[33ma518239[m Create frontend
+[33m761c279[m Initial commit
