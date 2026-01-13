@@ -292,6 +292,18 @@ export default function TicketDetail() {
 
   const handleChangeStatus = async (statusId) => {
     if (changingStatus || !statusId) return
+    const requiresMessage = statusId === 3 || statusId === 4
+    let messageContent = ''
+    if (isAdmin && requiresMessage) {
+      const label = STATUS_OPTIONS.find((opt) => opt.id === statusId)?.label || 'este estado'
+      const input = window.prompt(`Escribe un mensaje para marcar el ticket como ${label}.`)
+      if (input == null) return
+      messageContent = input.trim()
+      if (!messageContent) {
+        setError('Debes escribir un mensaje para cerrar o resolver el ticket')
+        return
+      }
+    }
     try {
       setChangingStatus(true)
       setError('')
@@ -306,6 +318,22 @@ export default function TicketDetail() {
             }
           : prev
       )
+      if (isAdmin && requiresMessage && user?.id) {
+        const saved = await createMessage(
+          { ticketId: Number(id), userId: user.id, content: messageContent },
+          token
+        )
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: saved?.id,
+            userId: saved?.userId ?? user.id,
+            ticketId: saved?.ticketId ?? Number(id),
+            content: saved?.content ?? messageContent,
+            createdAt: saved?.createdAt ?? new Date().toISOString(),
+          },
+        ])
+      }
     } catch (err) {
       setError(err.message || 'No se pudo actualizar el estado')
     } finally {

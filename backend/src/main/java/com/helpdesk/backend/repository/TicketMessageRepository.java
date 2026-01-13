@@ -8,5 +8,6 @@ import com.helpdesk.backend.model.TicketMessage;
 
 public interface TicketMessageRepository extends JpaRepository<TicketMessage, Long> {
   List<TicketMessage> findByTicketIdOrderByCreatedAtAsc(Long ticketId);
+  List<TicketMessage> findByUserId(Long userId);
 }
 

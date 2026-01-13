@@ -4,6 +4,7 @@ import Button from '../../components/ui/Button.jsx'
 import AvatarInitials from '../../components/AvatarInitials.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { fetchTickets, updateTicketStatus, updateTicketAssignee, updateTicket } from '../../api/tickets.js'
+import { createMessage } from '../../api/messages.js'
 import { fetchUsers } from '../../api/users.js'
 import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
 
@@ -19,6 +20,7 @@ export default function AdminDashboard() {
   const [showMenu, setShowMenu] = useState(false)
   const [userMap, setUserMap] = useState({})
   const [showAssignedOnly, setShowAssignedOnly] = useState(false)
+  const [search, setSearch] = useState('')
   const menuRef = useRef(null)
   const [statusMenuTicketId, setStatusMenuTicketId] = useState(null)
   const [changingStatusId, setChangingStatusId] = useState(null)
@@ -128,11 +130,28 @@ export default function AdminDashboard() {
   }, [openTickets])
 
   const ticketsBySelected = useMemo(
-    () => openTickets.filter((t) => {
-      const topic = t.category || t.topic || ''
-      return topic.toLowerCase() === selectedCategory.toLowerCase()
-    }),
-    [openTickets, selectedCategory]
+    () => {
+      const filtered = openTickets.filter((t) => {
+        const topic = t.category || t.topic || ''
+        return topic.toLowerCase() === selectedCategory.toLowerCase()
+      })
+      const term = search.trim().toLowerCase()
+      if (!term) return filtered
+      return filtered.filter((t) => {
+        const id = t.id?.toString() ?? t.ticket_id_pk?.toString() ?? ''
+        const title = t.title || ''
+        const requester =
+          t.requester || t.createdByName || t.created_by_name || ''
+        const assignee = t.assignee || t.assigneeName || ''
+        return (
+          id.toLowerCase().includes(term) ||
+          title.toLowerCase().includes(term) ||
+          requester.toLowerCase().includes(term) ||
+          assignee.toLowerCase().includes(term)
+        )
+      })
+    },
+    [openTickets, selectedCategory, search]
   )
 
   const markSeen = (ticketId) => {
@@ -157,6 +176,18 @@ export default function AdminDashboard() {
 
   const handleChangeStatus = async (ticketId, statusId) => {
     if (!ticketId || !statusId || changingStatusId) return
+    const requiresMessage = statusId === 3 || statusId === 4
+    let messageContent = ''
+    if (requiresMessage) {
+      const label = STATUS_OPTIONS.find((opt) => opt.id === statusId)?.label || 'este estado'
+      const input = window.prompt(`Escribe un mensaje para marcar el ticket como ${label}.`)
+      if (input == null) return
+      messageContent = input.trim()
+      if (!messageContent) {
+        setError('Debes escribir un mensaje para cerrar o resolver el ticket')
+        return
+      }
+    }
     try {
       setChangingStatusId(ticketId)
       const updated = await updateTicketStatus(ticketId, statusId, token)
@@ -168,6 +199,12 @@ export default function AdminDashboard() {
             : t
         )
       )
+      if (requiresMessage && user?.id) {
+        await createMessage(
+          { ticketId: Number(ticketId), userId: user.id, content: messageContent },
+          token
+        )
+      }
     } catch (err) {
       setError(err.message || 'No se pudo actualizar el estado')
     } finally {
@@ -356,6 +393,15 @@ export default function AdminDashboard() {
                   Tickets en {selectedCategory} (no cerrados)
                 </h3>
                 <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Buscar tickets..."
+                      className="w-48 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => setShowAssignedOnly((v) => !v)}
