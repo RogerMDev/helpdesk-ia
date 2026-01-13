@@ -5,6 +5,7 @@ import Button from '../../components/ui/Button.jsx'
 import AvatarInitials from '../../components/AvatarInitials.jsx'
 import { fetchTicketById, deleteTicket, updateTicketStatus, updateTicketAssignee } from '../../api/tickets.js'
 import { listMessages, createMessage, deleteMessage, updateMessage } from '../../api/messages.js'
+import { listAttachments } from '../../api/attachments.js'
 import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
 import { fetchUserById } from '../../api/users.js'
 
@@ -27,6 +28,8 @@ export default function TicketDetail() {
   const [error, setError] = useState('')
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([])
+  const [attachments, setAttachments] = useState([])
+  const [attachmentsError, setAttachmentsError] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [editText, setEditText] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
@@ -95,6 +98,7 @@ export default function TicketDetail() {
     user?.user_role
   const isAdmin = String(roleId) === '1' || user?.role === 'admin'
   const seenKey = user?.id ? `ticketStatusSeen:${user.id}` : null
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
   useEffect(() => {
     const handler = (e) => {
@@ -120,10 +124,12 @@ export default function TicketDetail() {
     const load = async () => {
       setLoading(true)
       setError('')
+      setAttachmentsError('')
+      setAttachments([])
       try {
         const [data, msgs] = await Promise.all([
-          fetchTicketById(id),
-          listMessages(id),
+          fetchTicketById(id, token),
+          listMessages(id, token),
         ])
         const payload = Array.isArray(data) ? data[0] : data
         if (!payload) throw new Error('Ticket no encontrado')
@@ -167,6 +173,20 @@ export default function TicketDetail() {
             createdAt: m.createdAt,
           }))
         )
+        try {
+          const attachmentList = await listAttachments(id, token)
+          setAttachments(
+            (attachmentList || []).map((a) => ({
+              id: a.id ?? a.attachment_id_pk ?? '',
+              filename: a.filename || a.fileName || a.name || 'Adjunto',
+              filepath: a.filepath || a.filePath || a.path || '',
+              uploadedAt: a.uploadedAt || a.uploaded_at || '',
+            }))
+          )
+        } catch (err) {
+          setAttachments([])
+          setAttachmentsError(err.message || 'No se pudieron cargar los adjuntos')
+        }
         console.log('Ticket detail cargado:', payload)
       } catch (err) {
         setError(err.message || 'No se pudo cargar el ticket')
@@ -516,6 +536,67 @@ export default function TicketDetail() {
                 </div>
               </div>
             </div>
+          )}
+
+          {ticket && (
+            <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900">Adjuntos</h2>
+                <span className="text-xs text-slate-500">{attachments.length} archivos</span>
+              </div>
+
+              {attachmentsError && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {attachmentsError}
+                </div>
+              )}
+
+              {attachments.length > 0 ? (
+                <div className="space-y-2">
+                  {attachments.map((file) => {
+                    const label = file.filename || file.filepath || 'Adjunto'
+                    const href =
+                      file.filepath &&
+                      (file.filepath.startsWith('http')
+                        ? file.filepath
+                        : `${apiBase}${file.filepath.startsWith('/') ? '' : '/'}${file.filepath}`)
+                    const hasLink = Boolean(href)
+                    return (
+                      <div
+                        key={file.id || `${label}-${file.filepath}`}
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 flex items-center justify-between gap-3"
+                      >
+                        <div className="flex flex-col">
+                          {hasLink ? (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm font-semibold text-blue-700 hover:underline break-all"
+                            >
+                              {label}
+                            </a>
+                          ) : (
+                            <span className="text-sm font-semibold text-slate-800 break-all">
+                              {label}
+                            </span>
+                          )}
+                          {file.uploadedAt && (
+                            <span className="text-xs text-slate-500">
+                              {formatDateTime(file.uploadedAt)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                  No hay adjuntos para este ticket.
+                </div>
+              )}
+            </section>
           )}
 
           <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">

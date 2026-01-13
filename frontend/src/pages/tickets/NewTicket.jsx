@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import Input from '../../components/ui/Input.jsx'
 import { createTicket } from '../../api/tickets.js'
+import { uploadAttachment } from '../../api/attachments.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 
 const CATEGORIES = ['Red', 'Accesos', 'Licencias', 'Hardware', 'Software', 'Otro']
 
 export default function NewTicket() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const [form, setForm] = useState({
     category: '',
     title: '',
@@ -33,7 +34,7 @@ export default function NewTicket() {
     setForm((prev) => ({ ...prev, file: null }))
   }
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
     setError('')
     if (!form.title.trim() || !form.category) {
@@ -49,10 +50,17 @@ export default function NewTicket() {
       description: form.description,
       topic: form.category,
     }
-    createTicket(payload)
-      .then(() => navigate('/tickets'))
-      .catch((err) => setError(err.message || 'No se pudo crear el ticket'))
-      .finally(() => setLoading(false))
+    try {
+      const created = await createTicket(payload, token)
+      if (form.file) {
+        await uploadAttachment(created?.id ?? created?.ticket_id_pk, form.file, token)
+      }
+      navigate(`/tickets/${created?.id ?? created?.ticket_id_pk ?? ''}`)
+    } catch (err) {
+      setError(err.message || 'No se pudo crear el ticket')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
