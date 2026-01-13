@@ -98,6 +98,7 @@ export default function TicketDetail() {
     user?.user_role
   const isAdmin = String(roleId) === '1' || user?.role === 'admin'
   const seenKey = user?.id ? `ticketStatusSeen:${user.id}` : null
+  const adminSeenKey = user?.id ? `adminTicketSeen:${user.id}` : null
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
   useEffect(() => {
@@ -211,6 +212,19 @@ export default function TicketDetail() {
       // ignore localStorage errors
     }
   }, [ticket, user?.id, isAdmin, seenKey])
+
+  useEffect(() => {
+    if (!isAdmin || !adminSeenKey || !ticket?.id) return
+    try {
+      const raw = localStorage.getItem(adminSeenKey)
+      const parsed = raw ? JSON.parse(raw) : {}
+      const next = { ...(parsed && typeof parsed === 'object' ? parsed : {}) }
+      next[ticket.id.toString()] = true
+      localStorage.setItem(adminSeenKey, JSON.stringify(next))
+    } catch {
+      // ignore localStorage errors
+    }
+  }, [isAdmin, adminSeenKey, ticket?.id])
 
   const sendMessage = async () => {
     if (!input.trim() || !user?.id) return

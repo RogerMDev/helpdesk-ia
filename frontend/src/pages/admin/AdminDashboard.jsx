@@ -25,6 +25,11 @@ export default function AdminDashboard() {
   const [assigningId, setAssigningId] = useState(null)
   const [releasingId, setReleasingId] = useState(null)
   const statusMenuRef = useRef(null)
+  const [seenTickets, setSeenTickets] = useState({})
+  const [lastSeenAt, setLastSeenAt] = useState(0)
+
+  const seenKey = user?.id ? `adminTicketSeen:${user.id}` : null
+  const seenAtKey = user?.id ? `adminTicketSeenAt:${user.id}` : null
 
   useEffect(() => {
     const handler = (e) => {
@@ -47,12 +52,41 @@ export default function AdminDashboard() {
   }, [statusMenuTicketId])
 
   useEffect(() => {
-    const load = async () => {
+    if (!seenKey) return
+    try {
+      const raw = localStorage.getItem(seenKey)
+      const parsed = raw ? JSON.parse(raw) : {}
+      setSeenTickets(parsed && typeof parsed === 'object' ? parsed : {})
+    } catch {
+      setSeenTickets({})
+    }
+  }, [seenKey])
+
+  useEffect(() => {
+    if (!seenAtKey) return
+    const now = Date.now()
+    try {
+      const raw = localStorage.getItem(seenAtKey)
+      const parsed = raw ? Number(raw) : 0
+      if (!parsed) {
+        localStorage.setItem(seenAtKey, String(now))
+        setLastSeenAt(now)
+      } else {
+        setLastSeenAt(parsed)
+      }
+    } catch {
+      localStorage.setItem(seenAtKey, String(now))
+      setLastSeenAt(now)
+    }
+  }, [seenAtKey])
+
+  useEffect(() => {
+    const load = async (seedOnFirstLoad = false) => {
       setLoading(true)
       setError('')
       try {
         const [data, users] = await Promise.all([
-          fetchTickets(),
+          fetchTickets(token),
           fetchUsers(token).catch(() => []),
         ])
         setTickets(data || [])
@@ -67,8 +101,10 @@ export default function AdminDashboard() {
         setLoading(false)
       }
     }
-    load()
-  }, [])
+    load(true)
+    const intervalId = setInterval(() => load(false), 15000)
+    return () => clearInterval(intervalId)
+  }, [token])
 
   const openTickets = useMemo(
     () => (tickets || []).filter((t) => {
@@ -98,6 +134,26 @@ export default function AdminDashboard() {
     }),
     [openTickets, selectedCategory]
   )
+
+  const markSeen = (ticketId) => {
+    if (!ticketId || !seenKey) return
+    setSeenTickets((prev) => {
+      if (prev?.[ticketId]) return prev
+      const next = { ...prev, [ticketId]: true }
+      localStorage.setItem(seenKey, JSON.stringify(next))
+      return next
+    })
+  }
+
+  const isNewTicket = (ticket) => {
+    const id = ticket?.id?.toString() ?? ticket?.ticket_id_pk?.toString()
+    const createdRaw = ticket?.createdAt || ticket?.created_at || ''
+    const createdAt = createdRaw ? new Date(createdRaw).getTime() : 0
+    if (!id) return false
+    if (seenTickets?.[id]) return false
+    if (!createdAt) return true
+    return createdAt > lastSeenAt
+  }
 
   const handleChangeStatus = async (ticketId, statusId) => {
     if (!ticketId || !statusId || changingStatusId) return
@@ -274,8 +330,17 @@ export default function AdminDashboard() {
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`rounded-xl border px-3 py-3 text-left transition ${isSelected ? selectedStyles : base}`}
+                    className={`relative rounded-xl border px-3 py-3 text-left transition ${isSelected ? selectedStyles : base}`}
                   >
+                    {openTickets.some((t) => {
+                      const topic = t.category || t.topic || ''
+                      return topic.toLowerCase() === cat.toLowerCase() && isNewTicket(t)
+                    }) && (
+                      <span
+                        className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500"
+                        title="Nuevo ticket"
+                      />
+                    )}
                     <div className="text-sm font-semibold">{cat}</div>
                     <div className={`text-xs ${isSelected ? 'text-white/90' : 'text-slate-500'}`}>
                       Abiertos: {countsByCategory[cat] || 0}
@@ -332,9 +397,19 @@ export default function AdminDashboard() {
                   return (
                   <article
                     key={t.id}
-                    className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl bg-white border border-slate-200 px-4 py-3 shadow-sm hover:shadow transition cursor-pointer"
-                    onClick={() => navigate(`/tickets/${t.id}`)}
+                    className="relative flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl bg-white border border-slate-200 px-4 py-3 shadow-sm hover:shadow transition cursor-pointer"
+                    onClick={() => {
+                      const id = t.id?.toString() ?? t.ticket_id_pk?.toString()
+                      markSeen(id)
+                      navigate(`/tickets/${t.id}`)
+                    }}
                   >
+                    {isNewTicket(t) && (
+                      <span
+                        className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500"
+                        title="Nuevo ticket"
+                      />
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-blue-700 font-semibold">{t.id}</span>
