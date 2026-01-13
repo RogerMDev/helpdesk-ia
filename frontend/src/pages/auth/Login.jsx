@@ -18,7 +18,7 @@ export default function Login() {
   useEffect(() => {
     const qs = new URLSearchParams(location.search)
     if (qs.get('registered') === '1') setOk('Cuenta creada. Ya puedes iniciar sesión.')
-    if (qs.get('reset') === '1') setOk('Contraseña cambiada correctamente.')
+    if (qs.get('reset') === '1' || qs.get('changed') === '1') setOk('Contraseña cambiada correctamente.')
   }, [location.search])
 
   useEffect(() => {
@@ -133,7 +133,7 @@ export default function Login() {
               ¿No tienes cuenta? <span className="font-semibold">¡Regístrate!</span>
             </Link>
             <Link className="text-sm text-blue-700 hover:underline" to="/forgot-password">
-              ¿Olvidaste tu contraseña?
+              ¿Cambiar contraseña?
             </Link>
           </div>
         </form>

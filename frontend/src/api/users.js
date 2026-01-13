@@ -84,6 +84,25 @@ export async function updateUser(id, payload, token) {
   return res.json()
 }
 
+export async function updateUserPassword(id, password, token) {
+  const res = await fetch(`${API_URL}/users/${id}/password`, {
+    method: 'PUT',
+    headers: defaultHeaders(token),
+    body: JSON.stringify({ password }),
+  })
+  if (!res.ok) {
+    let message = 'No se pudo actualizar la contraseña'
+    try {
+      const data = await res.json()
+      if (data?.message) message = data.message
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message)
+  }
+  return res.json()
+}
+
 export async function deleteUser(id, token) {
   const res = await fetch(`${API_URL}/users/${id}`, {
     method: 'DELETE',

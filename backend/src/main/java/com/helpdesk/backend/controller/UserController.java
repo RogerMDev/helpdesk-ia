@@ -56,6 +56,7 @@ public class UserController {
                        Integer roleId, String roleName, LocalDateTime createdAt) {}
   public record CreateUserDTO(Integer roleId, String name, String email, String password) {}
   public record UpdateUserDTO(Integer roleId, String name, String lastName, String email, String phone) {}
+  public record UpdatePasswordDTO(String password) {}
 
   // Mapper
   private static UserDTO toDTO(User u) {
@@ -110,6 +111,17 @@ public class UserController {
     if (dto.lastName() != null)  u.setLastName(dto.lastName());
     if (dto.email() != null)     u.setEmail(dto.email());
     if (dto.phone() != null)     u.setPhone(dto.phone());
+    return toDTO(users.save(u));
+  }
+
+  // -------- UPDATE PASSWORD (admin) --------
+  @PutMapping("/{id}/password")
+  public UserDTO updatePassword(@PathVariable Long id, @RequestBody UpdatePasswordDTO dto) {
+    if (dto == null || dto.password() == null || dto.password().isBlank()) {
+      throw new IllegalArgumentException("La contraseña es obligatoria");
+    }
+    User u = users.findById(id).orElseThrow();
+    u.setPassword(dto.password());
     return toDTO(users.save(u));
   }
 

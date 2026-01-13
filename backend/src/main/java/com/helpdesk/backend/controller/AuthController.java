@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.helpdesk.backend.dto.AuthResponse;
+import com.helpdesk.backend.dto.ChangePasswordRequest;
 import com.helpdesk.backend.dto.ForgotPasswordRequest;
 import com.helpdesk.backend.dto.LoginRequest;
 import com.helpdesk.backend.dto.RegisterRequest;
@@ -182,6 +183,28 @@ public class AuthController {
     prt.setUsedAt(now);
     resetTokens.save(prt);
 
+    return ResponseEntity.ok(Map.of("message", "Contraseña actualizada"));
+  }
+
+  @PostMapping("/change-password")
+  public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest req) {
+    if (req == null ||
+        req.getEmail() == null || req.getEmail().isBlank() ||
+        req.getCurrentPassword() == null || req.getCurrentPassword().isBlank() ||
+        req.getNewPassword() == null || req.getNewPassword().isBlank()) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+          .body(Map.of("message", "Email, contraseña actual y nueva son obligatorios"));
+    }
+
+    User u = userRepository.findByEmail(req.getEmail().trim())
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Credenciales incorrectas"));
+
+    if (!req.getCurrentPassword().equals(u.getPassword())) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Credenciales incorrectas");
+    }
+
+    u.setPassword(req.getNewPassword());
+    userRepository.save(u);
     return ResponseEntity.ok(Map.of("message", "Contraseña actualizada"));
   }
 

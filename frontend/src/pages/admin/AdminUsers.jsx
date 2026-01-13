@@ -4,7 +4,7 @@ import Button from '../../components/ui/Button.jsx'
 import Input from '../../components/ui/Input.jsx'
 import AvatarInitials from '../../components/AvatarInitials.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { fetchUsers, updateUser, deleteUser as deleteUserApi } from '../../api/users.js'
+import { fetchUsers, updateUser, deleteUser as deleteUserApi, updateUserPassword } from '../../api/users.js'
 
 const ADMIN_ROLE_ID = 1
 const USER_ROLE_ID = 3
@@ -18,9 +18,13 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [showAdminsOnly, setShowAdminsOnly] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
 
   const normalizeUser = useCallback((u) => {
     const roleRaw =
@@ -80,6 +84,11 @@ export default function AdminUsers() {
     loadUsers()
   }, [loadUsers])
 
+  useEffect(() => {
+    setNewPassword('')
+    setConfirmPassword('')
+  }, [selected?.id])
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
     const base = showAdminsOnly ? users.filter((u) => u.roleId === ADMIN_ROLE_ID) : users
@@ -111,6 +120,7 @@ export default function AdminUsers() {
     if (!selected?.id || saving) return
     setSaving(true)
     setError('')
+    setNotice('')
     try {
       const roleId = selected.roleId ?? USER_ROLE_ID
       const updated = await updateUser(
@@ -140,6 +150,7 @@ export default function AdminUsers() {
     if (!confirmed) return
     setSaving(true)
     setError('')
+    setNotice('')
     try {
       await deleteUserApi(id, token)
       setUsers((prev) => prev.filter((u) => u.id !== id))
@@ -148,6 +159,31 @@ export default function AdminUsers() {
       setError(err.message || 'No se pudo eliminar el usuario')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const changePassword = async () => {
+    if (!selected?.id || savingPassword) return
+    setError('')
+    setNotice('')
+    if (!newPassword.trim()) {
+      setError('La nueva contraseña es obligatoria')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Las contraseñas no coinciden')
+      return
+    }
+    setSavingPassword(true)
+    try {
+      await updateUserPassword(selected.id, newPassword.trim(), token)
+      setNotice('Contraseña actualizada')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err) {
+      setError(err.message || 'No se pudo actualizar la contraseña')
+    } finally {
+      setSavingPassword(false)
     }
   }
 
@@ -248,6 +284,11 @@ export default function AdminUsers() {
               {error}
             </div>
           )}
+          {notice && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {notice}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-1 space-y-2 max-h-[75vh] overflow-y-auto pr-1">
@@ -330,6 +371,38 @@ export default function AdminUsers() {
                       <option value={USER_ROLE_ID}>Usuario</option>
                       <option value={ADMIN_ROLE_ID}>Admin</option>
                     </Input>
+                  </div>
+                  <div className="border-t border-slate-200 pt-4">
+                    <h3 className="text-sm font-semibold text-slate-800">Cambiar contraseña</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                      <Input
+                        label="Nueva contraseña"
+                        name="newPassword"
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={savingPassword}
+                      />
+                      <Input
+                        label="Confirmar contraseña"
+                        name="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        disabled={savingPassword}
+                      />
+                    </div>
+                    <div className="mt-3">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="border border-slate-200 text-slate-700"
+                        onClick={changePassword}
+                        disabled={savingPassword || !selected?.id}
+                      >
+                        {savingPassword ? 'Actualizando...' : 'Actualizar contraseña'}
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex gap-3">
                     <Button

@@ -5,7 +5,6 @@ import './index.css'
 import Login from './pages/auth/Login.jsx'
 import Register from './pages/auth/Register.jsx'
 import ForgotPassword from './pages/auth/ForgotPassword.jsx'
-import ResetPassword from './pages/auth/ResetPassword.jsx'
 import TicketsHome from './pages/tickets/TicketsHome.jsx'
 import NewTicket from './pages/tickets/NewTicket.jsx'
 import Profile from './pages/account/Profile.jsx'
@@ -25,7 +24,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/reset-password" element={<Navigate to="/forgot-password" replace />} />
 
       {/* RUTAS PROTEGIDAS */}
       <Route

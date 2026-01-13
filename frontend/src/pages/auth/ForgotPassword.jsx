@@ -1,25 +1,44 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import Button from '../../components/ui/Button.jsx'
+import Input from '../../components/ui/Input.jsx'
+import Alert from '../../components/Alert.jsx'
 import logo_helpdesk from '../../assets/logo_helpdesk.png'
-import { requestPasswordReset } from '../../lib/api.js'
+import { changePassword } from '../../lib/api.js'
 
 export default function ForgotPassword() {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
+  const validate = () => {
+    if (!email || !email.includes('@')) return 'Correo invalido.'
+    if (!currentPassword) return 'La contrasena actual es obligatoria.'
+    if (newPassword.length < 8) return 'La contrasena nueva debe tener al menos 8 caracteres.'
+    if (newPassword !== confirm) return 'Las contrasenas no coinciden.'
+    return ''
+  }
+
   async function onSubmit(e) {
     e.preventDefault()
+    const v = validate()
+    if (v) {
+      setError(v)
+      return
+    }
     setError('')
-    setDone(false)
+    setLoading(true)
     try {
-      if (!email) throw new Error('Introduce tu correo')
-      setLoading(true)
-      await requestPasswordReset(email) // ajusta la ruta en api.js si tu backend usa otra
+      await changePassword({ email, currentPassword, newPassword })
       setDone(true)
+      setTimeout(() => navigate('/login?changed=1'), 1200)
     } catch (err) {
-      setError(err.message)
+      setError(err?.message || 'No se pudo cambiar la contrasena.')
     } finally {
       setLoading(false)
     }
@@ -32,52 +51,83 @@ export default function ForgotPassword() {
           <img
             src={logo_helpdesk}
             alt="Helpdesk IT"
-            className="mx-auto h-[110px] w-[110px] rounded-xl shadow-sm object-contain" 
-            />
-          <h1 className="text-2xl font-semibold tracking-tight">¿Has olvidado tu contraseña?</h1>
+            className="mx-auto h-[110px] w-[110px] rounded-xl shadow-sm object-contain"
+          />
+          <h1 className="text-2xl font-semibold tracking-tight">Cambiar contrasena</h1>
           <p className="text-sm text-slate-600">
-            Introduce tu correo y te enviaremos un enlace para cambiarla.
+            Escribe tu correo, tu contrasena actual y la nueva contrasena.
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={onSubmit}>
-          <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-                Correo electrónico
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="usuario@ejemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+        {error && (
+          <div className="mt-4">
+            <Alert type="error">{error}</Alert>
           </div>
+        )}
+        {done && (
+          <div className="mt-4">
+            <Alert type="success">Contrasena cambiada correctamente.</Alert>
+          </div>
+        )}
 
-          {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+        <form className="mt-8 space-y-4" onSubmit={onSubmit}>
+          <Input
+            label="Correo"
+            name="email"
+            type="email"
+            placeholder="tu-correo@ejemplo.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={loading || done}
+          />
+          <Input
+            label="Contrasena actual"
+            name="currentPassword"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+            disabled={loading || done}
+          />
+          <Input
+            label="Nueva contrasena"
+            name="newPassword"
+            type="password"
+            placeholder="Minimo 8 caracteres"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            disabled={loading || done}
+          />
+          <Input
+            label="Confirmar nueva contrasena"
+            name="confirm"
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+            disabled={loading || done}
+          />
 
-          {done && (
-            <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-              Si el correo existe en nuestro sistema, te hemos enviado un enlace para restablecer tu contraseña.
-              Revisa también tu carpeta de spam.
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-60"
-          >
-            {loading ? 'Enviando…' : 'Enviar enlace'}
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 pt-2">
+            <Button
+              variant="ghost"
+              type="button"
+              className="flex-1"
+              onClick={() => navigate('/login')}
+              disabled={loading}
+            >
+              Volver al login
+            </Button>
+            <Button type="submit" className="flex-1" disabled={loading || done}>
+              {loading ? 'Guardando...' : 'Cambiar contrasena'}
+            </Button>
+          </div>
 
           <div className="text-center">
             <Link to="/login" className="text-sm text-blue-700 hover:underline">
-              Volver al inicio de sesión
+              Volver al inicio de sesion
             </Link>
           </div>
         </form>

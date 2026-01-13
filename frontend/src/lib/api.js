@@ -40,6 +40,13 @@ export function resetPassword({ token, password }) {
   })
 }
 
+export function changePassword({ email, currentPassword, newPassword }) {
+  return apiFetch('/api/auth/change-password', {
+    method: 'POST',
+    body: { email, currentPassword, newPassword },
+  })
+}
+
 // (Opcional) registro centralizado
 export function registerRequest({ name, lastName, email, phone, password }) {
   return apiFetch('/api/auth/register', {
