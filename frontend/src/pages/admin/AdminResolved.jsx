@@ -6,6 +6,7 @@ import AvatarInitials from '../../components/AvatarInitials.jsx'
 import { fetchTickets } from '../../api/tickets.js'
 import { fetchUsers } from '../../api/users.js'
 import { getStatusMeta } from '../../utils/status.js'
+import logo_helpdesk from '../../assets/logo_helpdesk.png'
 
 const normalize = (t) => ({
   id: t.id?.toString() ?? t.ticket_id_pk?.toString() ?? '',
@@ -99,9 +100,11 @@ export default function AdminResolved() {
       <header className="w-full bg-white border-b border-slate-200">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-blue-600 shadow-sm flex items-center justify-center">
-              <span className="text-white text-sm font-semibold">H</span>
-            </div>
+            <img
+              src={logo_helpdesk}
+              alt="Helpia"
+              className="h-9 w-9 rounded-xl shadow-sm object-contain"
+            />
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-slate-900">Helpia · Tickets resueltos</span>
               <span className="text-xs text-slate-500">Estados RESOLVED / CLOSED</span>

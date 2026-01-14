@@ -6,6 +6,8 @@ import AvatarInitials from '../../components/AvatarInitials.jsx'
 import { fetchTickets } from '../../api/tickets.js'
 import { fetchUsers } from '../../api/users.js'
 import { getStatusMeta, STATUS_OPTIONS } from '../../utils/status.js'
+import logo_helpdesk from '../../assets/logo_helpdesk.png'
+import muneco_saludar from '../../assets/muneco.saludar.png'
 
 function formatDateTime(value) {
   if (!value) return ''
@@ -223,9 +225,11 @@ export default function TicketsHome() {
       <header className="w-full bg-white border-b border-slate-200">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-blue-600 shadow-sm flex items-center justify-center">
-              <span className="text-white text-sm font-semibold">H</span>
-            </div>
+            <img
+              src={logo_helpdesk}
+              alt="Helpia"
+              className="h-9 w-9 rounded-xl shadow-sm object-contain"
+            />
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-slate-900">
                 Helpia · Sistema de tickets
@@ -289,14 +293,21 @@ export default function TicketsHome() {
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <p className="text-sm text-slate-500">
-                Hola, <span className="font-semibold text-slate-800">{displayName}</span>
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-slate-900">Tus tickets</h2>
-              <p className="text-sm text-slate-500">
-                Revisa el estado de tus incidencias y crea nuevas solicitudes.
-              </p>
+            <div className="flex items-start gap-3">
+              <img
+                src={muneco_saludar}
+                alt="Muneco saludando"
+                className="h-250 w-25 sm:h-20 sm:w-20 object-contain"
+              />
+              <div>
+                <p className="text-base text-slate-500">
+                  Hola, <span className="font-semibold text-slate-800">{displayName}</span>
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold text-slate-900">Tus tickets</h2>
+                <p className="text-base text-slate-500">
+                  Revisa el estado de tus incidencias y crea nuevas solicitudes.
+                </p>
+              </div>
             </div>
 
             <Button onClick={handleNewTicket} className="self-start sm:self-auto">
