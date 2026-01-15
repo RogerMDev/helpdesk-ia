@@ -189,7 +189,7 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="min-h-screen h-screen overflow-hidden bg-slate-50 flex flex-col">
+    <div className="min-h-screen h-screen bg-slate-50 flex flex-col">
       <header className="w-full bg-white border-b border-slate-200">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -253,8 +253,8 @@ export default function AdminUsers() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-hidden">
-        <div className="mx-auto max-w-6xl px-4 py-6 space-y-6 h-full overflow-hidden">
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900">Usuarios</h1>
