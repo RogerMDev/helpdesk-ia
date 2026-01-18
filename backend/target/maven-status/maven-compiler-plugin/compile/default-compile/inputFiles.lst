@@ -1,5 +1,6 @@
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\BackendApplication.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\config\SecurityConfig.java
+C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\controller\AdviceController.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\controller\ApiExceptionController.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\controller\AttachmentController.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\controller\AuthController.java
@@ -9,6 +10,7 @@ C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backen
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\controller\TicketMessageController.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\controller\UserController.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\dto\AuthResponse.java
+C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\dto\ChangePasswordRequest.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\dto\ForgotPasswordRequest.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\dto\LoginRequest.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\dto\RegisterRequest.java
@@ -28,3 +30,4 @@ C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backen
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\repository\TicketRepository.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\repository\UserRepository.java
 C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\repository\UserRolesRepository.java
+C:\Users\Proyecto_Helpdesk\helpdesk-ia\backend\src\main\java\com\helpdesk\backend\service\OpenAiAdviceService.java

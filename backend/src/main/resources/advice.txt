@@ -1,0 +1,8 @@
+keywords: encender, pantalla, monitor
+answer: Mantenga presionado el boton de encendido durante 3 segundos.
+
+keywords: wifi, red, internet, conexion
+answer: Verifique que el cable de red o la conexion WiFi este activa y reinicie el router si es necesario.
+
+keywords: contrasena, acceso, password, login
+answer: Use la opcion "Olvide mi contrasena" y siga los pasos para restablecerla.

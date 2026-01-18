@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button.jsx'
 import Input from '../../components/ui/Input.jsx'
 import { createTicket } from '../../api/tickets.js'
+import { fetchAdvice } from '../../api/advice.js'
 import { uploadAttachment } from '../../api/attachments.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import logo_helpdesk from '../../assets/logo_helpdesk.png'
@@ -21,10 +22,18 @@ export default function NewTicket() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [adviceText, setAdviceText] = useState('')
+  const [adviceOpen, setAdviceOpen] = useState(false)
+  const [pendingPayload, setPendingPayload] = useState(null)
 
   const onChange = (e) => {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
+    if (name === 'description') {
+      setAdviceText('')
+      setAdviceOpen(false)
+      setPendingPayload(null)
+    }
   }
 
   const onFileChange = (e) => {
@@ -36,34 +45,50 @@ export default function NewTicket() {
     setForm((prev) => ({ ...prev, file: null }))
   }
 
+  const buildPayload = () => ({
+    createdById: user?.id,
+    assigneeId: null,
+    statusId: 1,
+    title: form.title.trim(),
+    description: form.description,
+    topic: form.category,
+  })
+
+  const createTicketFlow = async (payload) => {
+    const created = await createTicket(payload, token)
+    if (form.file) {
+      await uploadAttachment(created?.id ?? created?.ticket_id_pk, form.file, token)
+    }
+    navigate(`/tickets/${created?.id ?? created?.ticket_id_pk ?? ''}`)
+  }
+
   const onSubmit = async (e) => {
     e.preventDefault()
     setError('')
     if (!form.title.trim() || !form.category) {
-      setError('Completa título y tipología para crear el ticket.')
+      setError('Completa titulo y tipologia para crear el ticket.')
+      return
+    }
+    if (!form.description.trim()) {
+      setError('Completa la descripcion para que la IA pueda ayudarte.')
       return
     }
     setLoading(true)
-    const payload = {
-      createdById: user?.id,
-      assigneeId: null,
-      statusId: 1,
-      title: form.title.trim(),
-      description: form.description,
-      topic: form.category,
-    }
+    const payload = buildPayload()
     try {
-      const created = await createTicket(payload, token)
-      if (form.file) {
-        await uploadAttachment(created?.id ?? created?.ticket_id_pk, form.file, token)
-      }
-      navigate(`/tickets/${created?.id ?? created?.ticket_id_pk ?? ''}`)
+      const response = await fetchAdvice(form.description, token)
+      const text = response?.advice?.trim()
+      setAdviceText(text || 'No se pudo generar una sugerencia automatica.')
+      setPendingPayload(payload)
+      setAdviceOpen(true)
+      return
     } catch (err) {
-      setError(err.message || 'No se pudo crear el ticket')
+      setError(err.message || 'No se pudo consultar el consejo automatico.')
     } finally {
       setLoading(false)
     }
   }
+
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -203,6 +228,52 @@ export default function NewTicket() {
           </div>
         </div>
       </main>
+
+      {adviceOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-slate-900">Consejo rapido</h2>
+            <p className="mt-3 whitespace-pre-line text-sm text-slate-700">{adviceText}</p>
+            <p className="mt-4 text-sm text-slate-600">
+              Quieres seguir abriendo el ticket?
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                variant="ghost"
+                className="flex-1 border border-slate-200 text-slate-700"
+                onClick={() => {
+                  setAdviceOpen(false)
+                  setAdviceText('')
+                  setPendingPayload(null)
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={async () => {
+                  if (!pendingPayload) return
+                  setAdviceOpen(false)
+                  setLoading(true)
+                  try {
+                    await createTicketFlow(pendingPayload)
+                  } catch (err) {
+                    setError(err.message || 'No se pudo crear el ticket')
+                  } finally {
+                    setLoading(false)
+                    setAdviceText('')
+                    setPendingPayload(null)
+                  }
+                }}
+              >
+                Seguir y crear
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
