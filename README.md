@@ -444,44 +444,31 @@ Anade tus imagenes en una carpeta, por ejemplo:
 docs/screenshots/
 ```
 
-Ejemplos de capturas recomendadas:
+Capturas del proyecto:
 
 1. Pantalla de login
 
-```markdown
 ![Login](docs/screenshots/login.png)
-```
 
 2. Pantalla de registro
 
-```markdown
 ![Registro](docs/screenshots/registro.png)
-```
 
 3. Listado de tickets
 
-```markdown
 ![Tickets](docs/screenshots/tickets.png)
-```
 
 4. Detalle de ticket
 
-```markdown
 ![Detalle del ticket](docs/screenshots/detalle-ticket.png)
-```
 
 5. Panel de administracion
 
-```markdown
 ![Panel de administracion](docs/screenshots/admin.png)
-```
 
 6. Gestion de usuarios
 
-```markdown
 ![Usuarios](docs/screenshots/usuarios.png)
-```
-
 ## Pruebas Y Verificacion
 
 Backend:
