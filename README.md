@@ -523,5 +523,4 @@ Comprobaciones manuales recomendadas:
 
 ## Autor
 
-Proyecto personal de Helpdesk con IA.
-
+Roger Mateo Morales
