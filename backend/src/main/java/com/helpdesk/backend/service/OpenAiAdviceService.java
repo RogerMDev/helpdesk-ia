@@ -47,7 +47,7 @@ public class OpenAiAdviceService {
     }
 
     var systemPrompt = String.join(" ",
-        "Eres un asistente de soporte tecnico.", 
+        "Eres un asistente de soporte tecnico.",
         "Responde solamente preguntas de aspecto tecnico.",
         "Responde en espanol con una solucion breve y clara.",
         "Si falta informacion critica, haz una sola pregunta para aclarar.",
@@ -58,16 +58,12 @@ public class OpenAiAdviceService {
         "input", List.of(
             Map.of(
                 "role", "system",
-                "content", List.of(Map.of("type", "input_text", "text", systemPrompt))
-            ),
+                "content", List.of(Map.of("type", "input_text", "text", systemPrompt))),
             Map.of(
                 "role", "user",
-                "content", List.of(Map.of("type", "input_text", "text", description))
-            )
-        ),
+                "content", List.of(Map.of("type", "input_text", "text", description)))),
         "temperature", 0.2,
-        "max_output_tokens", 200
-    );
+        "max_output_tokens", 200);
 
     String body;
     try {
